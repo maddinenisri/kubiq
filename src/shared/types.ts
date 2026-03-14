@@ -63,7 +63,72 @@ export interface EventRow {
   message: string;
 }
 
-export type ResourceType = "pods" | "deployments" | "services" | "configmaps" | "nodes" | "events";
+export type ResourceType =
+  | "pods"
+  | "deployments"
+  | "services"
+  | "configmaps"
+  | "nodes"
+  | "events"
+  | "rbac";
+
+// ── RBAC types ──────────────────────────────────────────────────────────────
+
+export interface RbacWarning {
+  severity: "danger" | "warning";
+  message: string;
+}
+
+export interface ServiceAccountRow {
+  name: string;
+  namespace: string;
+  secrets: number;
+  age: string;
+  boundRoles: string[];
+  warnings: RbacWarning[];
+}
+
+export interface RoleRow {
+  name: string;
+  namespace: string;
+  kind: "Role" | "ClusterRole";
+  ruleCount: number;
+  age: string;
+  warnings: RbacWarning[];
+}
+
+export interface BindingRow {
+  name: string;
+  namespace: string;
+  kind: "RoleBinding" | "ClusterRoleBinding";
+  roleRef: string;
+  subjects: string[];
+  age: string;
+}
+
+export interface RbacPolicyRule {
+  apiGroups: string[];
+  resources: string[];
+  verbs: string[];
+}
+
+export interface RbacPermissionChain {
+  subject: { kind: string; name: string; namespace: string };
+  bindings: Array<{
+    bindingName: string;
+    bindingKind: string;
+    roleName: string;
+    roleKind: string;
+    rules: RbacPolicyRule[];
+  }>;
+  warnings: RbacWarning[];
+}
+
+export interface CanIResult {
+  verb: string;
+  resource: string;
+  allowed: boolean;
+}
 
 // ── Pod snapshot (diagnosis panel) ──────────────────────────────────────────
 

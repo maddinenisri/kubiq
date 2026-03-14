@@ -6,7 +6,18 @@ import { ServicesTable } from "./tables/ServicesTable";
 import { ConfigMapsTable } from "./tables/ConfigMapsTable";
 import { NodesTable } from "./tables/NodesTable";
 import { EventsTable } from "./tables/EventsTable";
-import type { PodRow, DeployRow, ServiceRow, ConfigMapRow, NodeRow, EventRow } from "@shared/types";
+import { RbacView } from "./tables/RbacView";
+import type {
+  PodRow,
+  DeployRow,
+  ServiceRow,
+  ConfigMapRow,
+  NodeRow,
+  EventRow,
+  ServiceAccountRow,
+  RoleRow,
+  BindingRow,
+} from "@shared/types";
 
 export function ResourceView() {
   const { state, dispatch } = useExtensionState();
@@ -56,6 +67,14 @@ export function ResourceView() {
       return <NodesTable rows={rows as NodeRow[]} />;
     case "events":
       return <EventsTable rows={rows as EventRow[]} />;
+    case "rbac": {
+      const rbacData = rows as unknown as {
+        serviceAccounts: ServiceAccountRow[];
+        roles: RoleRow[];
+        bindings: BindingRow[];
+      };
+      return <RbacView data={rbacData} />;
+    }
     default:
       return null;
   }

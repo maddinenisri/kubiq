@@ -10,6 +10,7 @@ const TABS: Array<{ key: ResourceType; label: string }> = [
   { key: "configmaps", label: "ConfigMaps" },
   { key: "nodes", label: "Nodes" },
   { key: "events", label: "Events" },
+  { key: "rbac", label: "RBAC" },
 ];
 
 export function ResourceTabs() {

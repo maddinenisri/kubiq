@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { getWebviewHtml } from "../utils/html";
 import { runner } from "../services/KubectlService";
 import { contextManager } from "../services/ContextService";
+import { analyzeRoleWarnings, analyzeBindingWarnings } from "../rbac/rbacAnalyzer";
 
 type DiagnoseHandler = (pod: string, namespace: string, context: string) => void;
 
@@ -207,6 +208,47 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "events":
           rows = await runner.getEvents(context, namespace);
           break;
+        case "rbac": {
+          const [sas, roles, bindings] = await Promise.all([
+            runner.getServiceAccounts(context, namespace),
+            runner.getRolesAndClusterRoles(context, namespace),
+            runner.getBindings(context, namespace),
+          ]);
+
+          // Cross-reference: find bound roles for each SA
+          const saRows = sas.map((sa) => {
+            const boundRoles = bindings
+              .filter((b) =>
+                b.subjects.some((s) => s.includes(`ServiceAccount`) && s.includes(sa.name)),
+              )
+              .map((b) => b.roleRef);
+            const warnings = boundRoles.flatMap((ref) =>
+              analyzeBindingWarnings([`ServiceAccount/${sa.namespace}/${sa.name}`], ref),
+            );
+            return { ...sa, boundRoles, warnings };
+          });
+
+          const roleRows = roles.map((r) => ({
+            name: r.name,
+            namespace: r.namespace,
+            kind: r.kind as "Role" | "ClusterRole",
+            ruleCount: r.ruleCount,
+            age: r.age,
+            warnings: analyzeRoleWarnings(r.name, r.kind, r.rules),
+          }));
+
+          const bindingRows = bindings.map((b) => ({
+            ...b,
+            kind: b.kind as "RoleBinding" | "ClusterRoleBinding",
+          }));
+
+          rows = {
+            serviceAccounts: saRows,
+            roles: roleRows,
+            bindings: bindingRows,
+          } as unknown as unknown[];
+          break;
+        }
       }
       view.webview.postMessage({ type: "data", resource, rows });
     } catch (e) {

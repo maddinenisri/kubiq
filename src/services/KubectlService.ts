@@ -330,6 +330,135 @@ export class KubectlRunner {
       .reverse(); // newest first
   }
 
+  // ── RBAC ─────────────────────────────────────────────────────────────
+
+  async getServiceAccounts(
+    context: string,
+    namespace: string,
+  ): Promise<Array<{ name: string; namespace: string; secrets: number; age: string }>> {
+    const nsFlag = namespace === "_all" ? "--all-namespaces" : `--namespace=${namespace}`;
+    const raw = await this.run(
+      ["get", "serviceaccounts", "-o", "json", nsFlag, `--context=${context}`],
+      context,
+    );
+    const obj = JSON.parse(raw);
+    return ((obj.items as unknown[]) ?? []).map((item: unknown) => {
+      const i = item as Record<string, unknown>;
+      const meta = i.metadata as Record<string, unknown>;
+      const secrets = (i.secrets as unknown[]) ?? [];
+      return {
+        name: meta.name as string,
+        namespace: meta.namespace as string,
+        secrets: secrets.length,
+        age: this.age(meta.creationTimestamp as string),
+      };
+    });
+  }
+
+  async getRolesAndClusterRoles(
+    context: string,
+    namespace: string,
+  ): Promise<
+    Array<{
+      name: string;
+      namespace: string;
+      kind: string;
+      ruleCount: number;
+      age: string;
+      rules: Array<{ apiGroups: string[]; resources: string[]; verbs: string[] }>;
+    }>
+  > {
+    const nsFlag = namespace === "_all" ? "--all-namespaces" : `--namespace=${namespace}`;
+    const [rolesRaw, clusterRolesRaw] = await Promise.all([
+      this.runSafe(["get", "roles", "-o", "json", nsFlag, `--context=${context}`], context),
+      this.runSafe(["get", "clusterroles", "-o", "json", `--context=${context}`], context),
+    ]);
+
+    const parseRoles = (raw: string, kind: string) => {
+      if (!raw) return [];
+      const obj = JSON.parse(raw);
+      return ((obj.items as unknown[]) ?? []).map((item: unknown) => {
+        const i = item as Record<string, unknown>;
+        const meta = i.metadata as Record<string, unknown>;
+        const rules = ((i.rules as unknown[]) ?? []).map((r: unknown) => {
+          const rule = r as Record<string, unknown>;
+          return {
+            apiGroups: (rule.apiGroups as string[]) ?? [""],
+            resources: (rule.resources as string[]) ?? [],
+            verbs: (rule.verbs as string[]) ?? [],
+          };
+        });
+        return {
+          name: meta.name as string,
+          namespace: (meta.namespace as string) ?? "",
+          kind,
+          ruleCount: rules.length,
+          age: this.age(meta.creationTimestamp as string),
+          rules,
+        };
+      });
+    };
+
+    return [...parseRoles(rolesRaw, "Role"), ...parseRoles(clusterRolesRaw, "ClusterRole")];
+  }
+
+  async getBindings(
+    context: string,
+    namespace: string,
+  ): Promise<
+    Array<{
+      name: string;
+      namespace: string;
+      kind: string;
+      roleRef: string;
+      subjects: string[];
+      age: string;
+    }>
+  > {
+    const nsFlag = namespace === "_all" ? "--all-namespaces" : `--namespace=${namespace}`;
+    const [rbRaw, crbRaw] = await Promise.all([
+      this.runSafe(["get", "rolebindings", "-o", "json", nsFlag, `--context=${context}`], context),
+      this.runSafe(["get", "clusterrolebindings", "-o", "json", `--context=${context}`], context),
+    ]);
+
+    const parseBindings = (raw: string, kind: string) => {
+      if (!raw) return [];
+      const obj = JSON.parse(raw);
+      return ((obj.items as unknown[]) ?? []).map((item: unknown) => {
+        const i = item as Record<string, unknown>;
+        const meta = i.metadata as Record<string, unknown>;
+        const roleRef = i.roleRef as Record<string, unknown>;
+        const subjects = ((i.subjects as unknown[]) ?? []).map((s: unknown) => {
+          const sub = s as Record<string, unknown>;
+          return `${sub.kind}/${sub.namespace ?? ""}/${sub.name}`;
+        });
+        return {
+          name: meta.name as string,
+          namespace: (meta.namespace as string) ?? "",
+          kind,
+          roleRef: `${roleRef.kind}/${roleRef.name}`,
+          subjects,
+          age: this.age(meta.creationTimestamp as string),
+        };
+      });
+    };
+
+    return [...parseBindings(rbRaw, "RoleBinding"), ...parseBindings(crbRaw, "ClusterRoleBinding")];
+  }
+
+  async authCanI(
+    context: string,
+    verb: string,
+    resource: string,
+    asSubject: string,
+    namespace?: string,
+  ): Promise<boolean> {
+    const args = ["auth", "can-i", verb, resource, `--as=${asSubject}`, `--context=${context}`];
+    if (namespace) args.push(`--namespace=${namespace}`);
+    const out = await this.runSafe(args, context);
+    return out.trim().toLowerCase() === "yes";
+  }
+
   // ── Get/Apply YAML ────────────────────────────────────────────────────
 
   async getYaml(context: string, kind: string, name: string, namespace: string): Promise<string> {
