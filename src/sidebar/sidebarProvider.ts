@@ -12,7 +12,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   constructor(private readonly extUri: vscode.Uri) {}
 
-  onDiagnose(fn: DiagnoseHandler) { this.diagnoseHandler = fn; }
+  onDiagnose(fn: DiagnoseHandler) {
+    this.diagnoseHandler = fn;
+  }
 
   refresh() {
     this.view?.webview.postMessage({ type: "refresh" });
@@ -21,7 +23,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   resolveWebviewView(
     view: vscode.WebviewView,
     _ctx: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ) {
     this.view = view;
     view.webview.options = {
@@ -32,7 +34,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     view.webview.onDidReceiveMessage(async (msg: Record<string, unknown>) => {
       switch (msg.type as string) {
-
         case "init":
           await this.handleInit(view);
           break;
@@ -45,16 +46,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         case "fetch": {
           const ctx = msg.context as string;
-          const ns  = msg.namespace as string;
+          const ns = msg.namespace as string;
           const res = msg.resource as string;
           await this.handleFetch(view, ctx, ns, res);
           break;
         }
 
         case "diagnose": {
-          const pod  = msg.pod as string;
-          const ns   = msg.namespace as string;
-          const ctx  = msg.context as string;
+          const pod = msg.pod as string;
+          const ns = msg.namespace as string;
+          const ctx = msg.context as string;
           this.diagnoseHandler?.(pod, ns, ctx);
           break;
         }
@@ -66,8 +67,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async handleInit(view: vscode.WebviewView) {
     try {
-      const contexts    = contextManager.listEksContexts();
-      const currentCtx  = this.currentKubectlContext();
+      const contexts = contextManager.listEksContexts();
+      const currentCtx = this.currentKubectlContext();
 
       // Group contexts by AWS profile
       const clustersByProfile: Record<string, string[]> = {};
@@ -117,7 +118,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         runner.hasMetricsServer(context),
       ]);
       view.webview.postMessage({
-        type: "namespaces", context, namespaces, hasMetrics,
+        type: "namespaces",
+        context,
+        namespaces,
+        hasMetrics,
       });
     } catch (e) {
       this.sendError(view, `Failed to get namespaces: ${(e as Error).message}`);
@@ -126,17 +130,31 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async handleFetch(
     view: vscode.WebviewView,
-    context: string, namespace: string, resource: string
+    context: string,
+    namespace: string,
+    resource: string,
   ) {
     try {
       let rows: unknown[] = [];
       switch (resource) {
-        case "pods":        rows = await runner.getPods(context, namespace);        break;
-        case "deployments": rows = await runner.getDeployments(context, namespace); break;
-        case "services":    rows = await runner.getServices(context, namespace);    break;
-        case "configmaps":  rows = await runner.getConfigMaps(context, namespace);  break;
-        case "nodes":       rows = await runner.getNodes(context);                  break;
-        case "events":      rows = await runner.getEvents(context, namespace);      break;
+        case "pods":
+          rows = await runner.getPods(context, namespace);
+          break;
+        case "deployments":
+          rows = await runner.getDeployments(context, namespace);
+          break;
+        case "services":
+          rows = await runner.getServices(context, namespace);
+          break;
+        case "configmaps":
+          rows = await runner.getConfigMaps(context, namespace);
+          break;
+        case "nodes":
+          rows = await runner.getNodes(context);
+          break;
+        case "events":
+          rows = await runner.getEvents(context, namespace);
+          break;
       }
       view.webview.postMessage({ type: "data", resource, rows });
     } catch (e) {
@@ -152,6 +170,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     try {
       const { execSync } = require("child_process");
       return execSync("kubectl config current-context", { encoding: "utf8" }).trim();
-    } catch { return ""; }
+    } catch {
+      return "";
+    }
   }
 }

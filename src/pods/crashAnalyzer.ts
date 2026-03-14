@@ -2,24 +2,34 @@ import type { PodSnapshot } from "../kubectl/runner";
 
 // Known crash patterns for instant local pre-classification (no CLI involved)
 const CRASH_PATTERNS: Array<{
-  pattern:  RegExp;
-  label:    string;
+  pattern: RegExp;
+  label: string;
   severity: "critical" | "warning" | "info";
 }> = [
-  { pattern: /OOMKilled/i,                               label: "Out of Memory",           severity: "critical" },
-  { pattern: /CrashLoopBackOff/i,                        label: "Crash Loop",              severity: "critical" },
-  { pattern: /ImagePullBackOff|ErrImagePull/i,           label: "Image Pull Failure",      severity: "critical" },
-  { pattern: /Error: failed to create containerd task/i, label: "Container Runtime Error", severity: "critical" },
-  { pattern: /Liveness probe failed/i,                   label: "Liveness Probe Failure",  severity: "warning"  },
-  { pattern: /Readiness probe failed/i,                  label: "Readiness Probe Failure", severity: "warning"  },
-  { pattern: /Back-off restarting failed container/i,    label: "Restart Back-off",        severity: "warning"  },
-  { pattern: /insufficient (cpu|memory)/i,               label: "Insufficient Resources",  severity: "critical" },
-  { pattern: /FailedScheduling/i,                        label: "Scheduling Failure",      severity: "warning"  },
-  { pattern: /MountVolume.SetUp failed/i,                label: "Volume Mount Failure",    severity: "critical" },
+  { pattern: /OOMKilled/i, label: "Out of Memory", severity: "critical" },
+  { pattern: /CrashLoopBackOff/i, label: "Crash Loop", severity: "critical" },
+  { pattern: /ImagePullBackOff|ErrImagePull/i, label: "Image Pull Failure", severity: "critical" },
+  {
+    pattern: /Error: failed to create containerd task/i,
+    label: "Container Runtime Error",
+    severity: "critical",
+  },
+  { pattern: /Liveness probe failed/i, label: "Liveness Probe Failure", severity: "warning" },
+  { pattern: /Readiness probe failed/i, label: "Readiness Probe Failure", severity: "warning" },
+  {
+    pattern: /Back-off restarting failed container/i,
+    label: "Restart Back-off",
+    severity: "warning",
+  },
+  { pattern: /insufficient (cpu|memory)/i, label: "Insufficient Resources", severity: "critical" },
+  { pattern: /FailedScheduling/i, label: "Scheduling Failure", severity: "warning" },
+  { pattern: /MountVolume.SetUp failed/i, label: "Volume Mount Failure", severity: "critical" },
 ];
 
 export class CrashAnalyzer {
-  quickScan(snapshot: PodSnapshot): { label: string; severity: "critical" | "warning" | "info" } | null {
+  quickScan(
+    snapshot: PodSnapshot,
+  ): { label: string; severity: "critical" | "warning" | "info" } | null {
     const fullText = [
       snapshot.events,
       ...Object.values(snapshot.logs),
@@ -36,17 +46,21 @@ export class CrashAnalyzer {
       s.length > maxChars ? `...[truncated]\n${s.slice(-maxChars)}` : s;
 
     const containerSummary = snapshot.containers
-      .map((c) =>
-        `- ${c.name}: ${c.state}` +
-        (c.lastState ? ` | last: ${c.lastState}` : "") +
-        ` | restarts: ${c.restartCount} | image: ${c.image}`
-      ).join("\n");
+      .map(
+        (c) =>
+          `- ${c.name}: ${c.state}` +
+          (c.lastState ? ` | last: ${c.lastState}` : "") +
+          ` | restarts: ${c.restartCount} | image: ${c.image}`,
+      )
+      .join("\n");
 
     const logsSummary = Object.entries(snapshot.logs)
-      .map(([name, log]) => `=== Container: ${name} ===\n${truncate(log)}`).join("\n\n");
+      .map(([name, log]) => `=== Container: ${name} ===\n${truncate(log)}`)
+      .join("\n\n");
 
     const prevLogsSummary = Object.entries(snapshot.previousLogs)
-      .map(([name, log]) => `=== Previous: ${name} ===\n${truncate(log, 2000)}`).join("\n\n");
+      .map(([name, log]) => `=== Previous: ${name} ===\n${truncate(log, 2000)}`)
+      .join("\n\n");
 
     return `You are an expert Kubernetes SRE acting as an interactive assistant inside a VS Code pod diagnostic panel.
 

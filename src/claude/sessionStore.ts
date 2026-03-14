@@ -1,19 +1,19 @@
 import * as vscode from "vscode";
 
 const MAX_MESSAGES = 50;
-const STORE_PREFIX  = "kubiq.session.";
+const STORE_PREFIX = "kubiq.session.";
 
 export interface StoredMessage {
-  role:      "user" | "assistant";
-  content:   string;
+  role: "user" | "assistant";
+  content: string;
   timestamp: number;
 }
 
 export interface StoredSession {
   sessionId: string;
-  messages:  StoredMessage[];
-  podKey:    string;
-  savedAt:   number;
+  messages: StoredMessage[];
+  podKey: string;
+  savedAt: number;
 }
 
 /**
@@ -28,8 +28,7 @@ export class SessionStore {
   /** Stable key for a pod */
   static key(context: string, namespace: string, podName: string): string {
     // Replace characters that could cause issues in storage keys
-    return `${STORE_PREFIX}${context}/${namespace}/${podName}`
-      .replace(/\s/g, "_");
+    return `${STORE_PREFIX}${context}/${namespace}/${podName}`.replace(/\s/g, "_");
   }
 
   get(podKey: string): StoredSession | undefined {

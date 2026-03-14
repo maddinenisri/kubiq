@@ -17,7 +17,9 @@ export class PodPanel {
 
   static open(
     context: vscode.ExtensionContext,
-    podName: string, namespace: string, clusterContext: string
+    podName: string,
+    namespace: string,
+    clusterContext: string,
   ): PodPanel {
     const key = `${clusterContext}/${namespace}/${podName}`;
     if (PodPanel.panels.has(key)) {
@@ -27,9 +29,14 @@ export class PodPanel {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      "kubiqPodDiagnosis", `⬡ ${podName}`,
+      "kubiqPodDiagnosis",
+      `⬡ ${podName}`,
       vscode.ViewColumn.One,
-      { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [context.extensionUri] }
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [context.extensionUri],
+      },
     );
 
     const instance = new PodPanel(panel);
@@ -44,7 +51,10 @@ export class PodPanel {
 
     // Forward webview messages to registered handlers
     panel.webview.onDidReceiveMessage((msg: { type: string; text?: string }) => {
-      if (msg.type === "ready") { instance._ready = true; instance.readyHandler?.(); }
+      if (msg.type === "ready") {
+        instance._ready = true;
+        instance.readyHandler?.();
+      }
       if (msg.type === "user_message") instance.userMessageHandler?.(msg.text ?? "");
     });
 
@@ -58,9 +68,13 @@ export class PodPanel {
   // ── Register handlers ────────────────────────────────────────────────────────
   onReady(fn: ReadyHandler) {
     this.readyHandler = fn;
-    if (this._ready) { fn(); } // webview beat us — fire immediately
+    if (this._ready) {
+      fn();
+    } // webview beat us — fire immediately
   }
-  onUserMessage(fn: UserMessageHandler) { this.userMessageHandler = fn; }
+  onUserMessage(fn: UserMessageHandler) {
+    this.userMessageHandler = fn;
+  }
 
   // ── Post messages to webview ─────────────────────────────────────────────────
   sendChatHistory(messages: StoredMessage[]) {
@@ -98,17 +112,22 @@ export class PodPanel {
 
 function snapshotForTransfer(s: PodSnapshot) {
   return {
-    phase: s.phase, nodeName: s.nodeName, startTime: s.startTime,
-    conditions: s.conditions, containers: s.containers,
-    logs: s.logs, previousLogs: s.previousLogs,
-    events: s.events, describe: s.describe,
+    phase: s.phase,
+    nodeName: s.nodeName,
+    startTime: s.startTime,
+    conditions: s.conditions,
+    containers: s.containers,
+    logs: s.logs,
+    previousLogs: s.previousLogs,
+    events: s.events,
+    describe: s.describe,
   };
 }
 
 // ─── HTML ─────────────────────────────────────────────────────────────────────
 
 function buildShellHtml(podName: string, namespace: string, clusterCtx: string): string {
-  return /* html */`<!DOCTYPE html>
+  return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -464,7 +483,7 @@ ${styles()}
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 function styles(): string {
-  return /* html */`<style>
+  return /* html */ `<style>
     :root {
       --bg:        #0d0f14;
       --bg2:       #13161d;
@@ -631,6 +650,9 @@ function styles(): string {
 
 function esc(s: string): string {
   return String(s ?? "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }

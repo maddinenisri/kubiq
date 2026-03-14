@@ -21,7 +21,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(SidebarProvider.viewId, sidebar, {
       webviewOptions: { retainContextWhenHidden: true },
-    })
+    }),
   );
 
   // ── Commands ───────────────────────────────────────────────────────────────
@@ -38,15 +38,20 @@ export async function activate(context: vscode.ExtensionContext) {
         // Manual entry fallback
         const p = await vscode.window.showInputBox({ prompt: "Pod name" });
         if (!p) return;
-        const ns = await vscode.window.showInputBox({ prompt: "Namespace", value: "default" }) ?? "default";
-        const contexts = (await import("./clusters/contextManager")).contextManager.listAllContexts();
-        const c = contexts.length === 1
-          ? contexts[0]
-          : await vscode.window.showQuickPick(contexts, { placeHolder: "Select context" });
+        const ns =
+          (await vscode.window.showInputBox({ prompt: "Namespace", value: "default" })) ??
+          "default";
+        const contexts = (
+          await import("./clusters/contextManager")
+        ).contextManager.listAllContexts();
+        const c =
+          contexts.length === 1
+            ? contexts[0]
+            : await vscode.window.showQuickPick(contexts, { placeHolder: "Select context" });
         if (!c) return;
         await runDiagnosis(context, p, ns, c);
-      }
-    )
+      },
+    ),
   );
 
   console.log("Kubiq: activated (standalone)");
@@ -56,10 +61,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
 async function runDiagnosis(
   extCtx: vscode.ExtensionContext,
-  podName: string, namespace: string, clusterContext: string
+  podName: string,
+  namespace: string,
+  clusterContext: string,
 ) {
   const podKey = SessionStore.key(clusterContext, namespace, podName);
-  const panel  = PodPanel.open(extCtx, podName, namespace, clusterContext);
+  const panel = PodPanel.open(extCtx, podName, namespace, clusterContext);
 
   panel.onReady(async () => {
     const stored = sessionStore.get(podKey);
@@ -75,14 +82,16 @@ async function runDiagnosis(
     try {
       snapshot = await vscode.window.withProgress(
         { location: vscode.ProgressLocation.Notification, title: `Kubiq: Fetching ${podName}…` },
-        () => runner.getPodSnapshot(podName, namespace, clusterContext)
+        () => runner.getPodSnapshot(podName, namespace, clusterContext),
       );
     } catch (e) {
       panel.sendError(`Failed to fetch pod data:\n\n${e instanceof Error ? e.message : String(e)}`);
       return;
     }
 
-    const quickHit = crashAnalyzer.quickScan(snapshot as Parameters<typeof crashAnalyzer.quickScan>[0]);
+    const quickHit = crashAnalyzer.quickScan(
+      snapshot as Parameters<typeof crashAnalyzer.quickScan>[0],
+    );
     if (quickHit) {
       vscode.window.showWarningMessage(`Kubiq: ${podName} — likely: ${quickHit.label}`);
     }
@@ -91,12 +100,19 @@ async function runDiagnosis(
 
     const session = createSession(podKey);
     wireSession(session, panel, podKey);
-    session.send(crashAnalyzer.buildInitialPrompt(snapshot as Parameters<typeof crashAnalyzer.buildInitialPrompt>[0]));
+    session.send(
+      crashAnalyzer.buildInitialPrompt(
+        snapshot as Parameters<typeof crashAnalyzer.buildInitialPrompt>[0],
+      ),
+    );
   });
 
-  panel.onUserMessage(text => {
+  panel.onUserMessage((text) => {
     const session = activeSessions.get(podKey);
-    if (!session) { panel.sendError("No active session. Reopen the panel."); return; }
+    if (!session) {
+      panel.sendError("No active session. Reopen the panel.");
+      return;
+    }
     sessionStore.addMessage(podKey, { role: "user", content: text, timestamp: Date.now() });
     panel.sendThinking();
     session.send(text);
@@ -112,17 +128,17 @@ function createSession(podKey: string, resumeId?: string): ClaudeSession {
 }
 
 function wireSession(session: ClaudeSession, panel: PodPanel, podKey: string) {
-  session.on("session_init", id => {
+  session.on("session_init", (id) => {
     const stored = sessionStore.get(podKey);
     if (stored) sessionStore.updateSessionId(podKey, id);
-    else        sessionStore.save(podKey, id, []);
+    else sessionStore.save(podKey, id, []);
   });
-  session.on("text_delta",    t    => panel.sendTextDelta(t));
-  session.on("turn_complete", full => {
+  session.on("text_delta", (t) => panel.sendTextDelta(t));
+  session.on("turn_complete", (full) => {
     panel.sendTurnComplete(full);
     sessionStore.addMessage(podKey, { role: "assistant", content: full, timestamp: Date.now() });
   });
-  session.on("error", msg => panel.sendError(msg));
+  session.on("error", (msg) => panel.sendError(msg));
 }
 
 export function deactivate() {

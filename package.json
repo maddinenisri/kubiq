@@ -12,13 +12,32 @@
     "color": "#0d0f14",
     "theme": "dark"
   },
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other", "Debuggers"],
-  "keywords": [
-    "kubernetes", "k8s", "eks", "gke", "aks", "pod", "diagnostics",
-    "kubectl", "crash", "logs", "kubiq", "dashboard", "cluster"
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Debuggers"
   ],
-  "activationEvents": ["onView:kubiq.dashboard", "onStartupFinished"],
+  "keywords": [
+    "kubernetes",
+    "k8s",
+    "eks",
+    "gke",
+    "aks",
+    "pod",
+    "diagnostics",
+    "kubectl",
+    "crash",
+    "logs",
+    "kubiq",
+    "dashboard",
+    "cluster"
+  ],
+  "activationEvents": [
+    "onView:kubiq.dashboard",
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -80,15 +99,43 @@
     "vscode:prepublish": "node build.js",
     "compile": "node build.js",
     "watch": "node build.js --watch",
-    "package": "node build.js && npx @vscode/vsce package --no-dependencies"
+    "package": "node build.js && npx @vscode/vsce package --no-dependencies",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"*.json\" \"*.js\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"*.json\" \"*.js\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,js,md}": [
+      "prettier --write"
+    ]
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.4.4",
+    "@commitlint/config-conventional": "^20.4.4",
+    "@eslint/js": "^10.0.1",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.0.0",
     "esbuild": "^0.20.0",
-    "typescript": "^5.3.0"
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.3",
+    "prettier": "^3.8.1",
+    "typescript": "^5.3.0",
+    "typescript-eslint": "^8.57.0",
+    "vitest": "^4.1.0"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"

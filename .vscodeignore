@@ -1,8 +1,17 @@
 .vscode/**
 .claude/**
+.github/**
+.husky/**
 node_modules/**
 src/**
+coverage/**
 tsconfig.json
+vitest.config.ts
+eslint.config.mjs
+commitlint.config.js
+.prettierrc.json
+.prettierignore
+.editorconfig
 build.js
 build-vsix.sh
 **/*.ts

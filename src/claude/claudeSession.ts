@@ -6,7 +6,7 @@ import { EventEmitter } from "events";
 interface StreamEventLine {
   type: "stream_event";
   event: {
-    type: string;           // content_block_delta | message_stop | message_start | ...
+    type: string; // content_block_delta | message_stop | message_start | ...
     index?: number;
     delta?: { type: string; text?: string };
   };
@@ -79,8 +79,10 @@ export class ClaudeSession extends EventEmitter {
 
     const args = [
       "--print",
-      "--output-format", "stream-json",
-      "--input-format",  "stream-json",
+      "--output-format",
+      "stream-json",
+      "--input-format",
+      "stream-json",
       "--verbose",
       "--include-partial-messages",
     ];
@@ -91,7 +93,7 @@ export class ClaudeSession extends EventEmitter {
 
     this.process = spawn("claude", args, {
       stdio: ["pipe", "pipe", "pipe"],
-      env:   process.env,
+      env: process.env,
     });
 
     // ── stdout: parse NDJSON line-by-line ──────────────────────────────────────
@@ -115,20 +117,22 @@ export class ClaudeSession extends EventEmitter {
     this.process.on("close", (code) => {
       if (this._disposed) return;
       if (code !== 0) {
-        this.emit("error",
+        this.emit(
+          "error",
           `Claude Code process exited with code ${code}.\n` +
-          (stderrBuf.trim() ? `stderr: ${stderrBuf.trim()}` : "") +
-          "\n\nRun `claude` in your terminal to verify authentication."
+            (stderrBuf.trim() ? `stderr: ${stderrBuf.trim()}` : "") +
+            "\n\nRun `claude` in your terminal to verify authentication.",
         );
       }
     });
 
     this.process.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "ENOENT") {
-        this.emit("error",
+        this.emit(
+          "error",
           "Claude Code CLI not found.\n\n" +
-          "Install: npm install -g @anthropic-ai/claude-code\n" +
-          "Auth:    claude"
+            "Install: npm install -g @anthropic-ai/claude-code\n" +
+            "Auth:    claude",
         );
       } else {
         this.emit("error", err.message);
@@ -148,7 +152,7 @@ export class ClaudeSession extends EventEmitter {
     this.currentTurnText = "";
 
     const line = JSON.stringify({
-      type:    "user",
+      type: "user",
       message: { role: "user", content: text },
     });
 
@@ -161,7 +165,9 @@ export class ClaudeSession extends EventEmitter {
     try {
       this.process?.stdin?.end();
       this.process?.kill();
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     this.process = null;
     this.removeAllListeners();
   }

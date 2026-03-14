@@ -9,42 +9,78 @@ const MAX_BUF = 20 * 1024 * 1024;
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 export interface PodRow {
-  name: string; namespace: string; status: string; phase: string;
-  ready: string; restarts: number; age: string; node: string;
-  cpu?: string; mem?: string;
+  name: string;
+  namespace: string;
+  status: string;
+  phase: string;
+  ready: string;
+  restarts: number;
+  age: string;
+  node: string;
+  cpu?: string;
+  mem?: string;
 }
 
 export interface DeployRow {
-  name: string; namespace: string; ready: string; upToDate: number;
-  available: number; age: string;
+  name: string;
+  namespace: string;
+  ready: string;
+  upToDate: number;
+  available: number;
+  age: string;
 }
 
 export interface ServiceRow {
-  name: string; namespace: string; type: string;
-  clusterIp: string; externalIp: string; ports: string; age: string;
+  name: string;
+  namespace: string;
+  type: string;
+  clusterIp: string;
+  externalIp: string;
+  ports: string;
+  age: string;
 }
 
 export interface ConfigMapRow {
-  name: string; namespace: string; data: number; age: string;
+  name: string;
+  namespace: string;
+  data: number;
+  age: string;
 }
 
 export interface NodeRow {
-  name: string; status: string; roles: string; age: string;
-  version: string; cpu?: string; mem?: string;
+  name: string;
+  status: string;
+  roles: string;
+  age: string;
+  version: string;
+  cpu?: string;
+  mem?: string;
 }
 
 export interface EventRow {
-  lastSeen: string; type: string; reason: string;
-  object: string; namespace: string; message: string;
+  lastSeen: string;
+  type: string;
+  reason: string;
+  object: string;
+  namespace: string;
+  message: string;
 }
 
 export interface PodSnapshot {
-  name: string; namespace: string; context: string;
-  phase: string; nodeName: string; startTime: string;
+  name: string;
+  namespace: string;
+  context: string;
+  phase: string;
+  nodeName: string;
+  startTime: string;
   conditions: Array<{ type: string; status: string; reason?: string }>;
   containers: Array<{
-    name: string; ready: boolean; restartCount: number;
-    state: string; lastState?: string; image: string;
+    name: string;
+    ready: boolean;
+    restartCount: number;
+    state: string;
+    lastState?: string;
+    image: string;
   }>;
   logs: Record<string, string>;
   previousLogs: Record<string, string>;
@@ -63,17 +99,22 @@ export class KubectlRunner {
   private async run(args: string[], context: string): Promise<string> {
     try {
       const { stdout } = await exec("kubectl", args, {
-        env: this.env(context), maxBuffer: MAX_BUF,
+        env: this.env(context),
+        maxBuffer: MAX_BUF,
       });
       return stdout;
     } catch (e: unknown) {
       const err = e as { stderr?: string; message?: string };
-      throw new Error(err.stderr?.trim() || err.message || String(e));
+      throw new Error(err.stderr?.trim() || err.message || String(e), { cause: e });
     }
   }
 
   private async runSafe(args: string[], context: string): Promise<string> {
-    try { return await this.run(args, context); } catch { return ""; }
+    try {
+      return await this.run(args, context);
+    } catch {
+      return "";
+    }
   }
 
   // ── Cluster bootstrap data ─────────────────────────────────────────────────
@@ -81,16 +122,23 @@ export class KubectlRunner {
   async getNamespaces(context: string): Promise<string[]> {
     const out = await this.runSafe(
       ["get", "namespaces", "-o", "jsonpath={.items[*].metadata.name}", `--context=${context}`],
-      context
+      context,
     );
     return out.trim() ? out.trim().split(/\s+/).sort() : ["default"];
   }
 
   async hasMetricsServer(context: string): Promise<boolean> {
     const out = await this.runSafe(
-      ["get", "apiservices", "v1beta1.metrics.k8s.io", "--ignore-not-found",
-       "-o", "jsonpath={.status.conditions[?(@.type==\"Available\")].status}", `--context=${context}`],
-      context
+      [
+        "get",
+        "apiservices",
+        "v1beta1.metrics.k8s.io",
+        "--ignore-not-found",
+        "-o",
+        'jsonpath={.status.conditions[?(@.type=="Available")].status}',
+        `--context=${context}`,
+      ],
+      context,
     );
     return out.trim() === "True";
   }
@@ -117,10 +165,11 @@ export class KubectlRunner {
       const spec = i.spec as Record<string, unknown>;
       const status = i.status as Record<string, unknown>;
       const cs = (status.containerStatuses as unknown[] | undefined) ?? [];
-      const totalRestarts = (cs as Array<Record<string, unknown>>)
-        .reduce((sum, c) => sum + ((c.restartCount as number) ?? 0), 0);
-      const readyCount = (cs as Array<Record<string, unknown>>)
-        .filter(c => c.ready).length;
+      const totalRestarts = (cs as Array<Record<string, unknown>>).reduce(
+        (sum, c) => sum + ((c.restartCount as number) ?? 0),
+        0,
+      );
+      const readyCount = (cs as Array<Record<string, unknown>>).filter((c) => c.ready).length;
       const top = topMap.get(meta.name as string);
       return {
         name: meta.name as string,
@@ -140,7 +189,9 @@ export class KubectlRunner {
   async getDeployments(context: string, namespace: string): Promise<DeployRow[]> {
     const nsFlag = namespace === "_all" ? "--all-namespaces" : `--namespace=${namespace}`;
     const raw = await this.run(
-      ["get", "deployments", "-o", "json", nsFlag, `--context=${context}`], context);
+      ["get", "deployments", "-o", "json", nsFlag, `--context=${context}`],
+      context,
+    );
     const obj = JSON.parse(raw);
     return (obj.items as unknown[]).map((item: unknown) => {
       const i = item as Record<string, unknown>;
@@ -160,24 +211,31 @@ export class KubectlRunner {
   async getServices(context: string, namespace: string): Promise<ServiceRow[]> {
     const nsFlag = namespace === "_all" ? "--all-namespaces" : `--namespace=${namespace}`;
     const raw = await this.run(
-      ["get", "services", "-o", "json", nsFlag, `--context=${context}`], context);
+      ["get", "services", "-o", "json", nsFlag, `--context=${context}`],
+      context,
+    );
     const obj = JSON.parse(raw);
     return (obj.items as unknown[]).map((item: unknown) => {
       const i = item as Record<string, unknown>;
       const meta = i.metadata as Record<string, unknown>;
       const spec = i.spec as Record<string, unknown>;
       const status = i.status as Record<string, unknown>;
-      const lbIngress = ((status.loadBalancer as Record<string,unknown>)
-        ?.ingress as unknown[] | undefined) ?? [];
-      const extIp = lbIngress.length > 0
-        ? ((lbIngress[0] as Record<string,unknown>).ip as string
-           ?? (lbIngress[0] as Record<string,unknown>).hostname as string ?? "pending")
-        : (spec.type === "NodePort" ? "node-port" : "—");
+      const lbIngress =
+        ((status.loadBalancer as Record<string, unknown>)?.ingress as unknown[] | undefined) ?? [];
+      const extIp =
+        lbIngress.length > 0
+          ? (((lbIngress[0] as Record<string, unknown>).ip as string) ??
+            ((lbIngress[0] as Record<string, unknown>).hostname as string) ??
+            "pending")
+          : spec.type === "NodePort"
+            ? "node-port"
+            : "—";
       const ports = ((spec.ports as unknown[]) ?? [])
         .map((p: unknown) => {
-          const pp = p as Record<string,unknown>;
+          const pp = p as Record<string, unknown>;
           return `${pp.port}${pp.nodePort ? `:${pp.nodePort}` : ""}/${pp.protocol}`;
-        }).join(", ");
+        })
+        .join(", ");
       return {
         name: meta.name as string,
         namespace: meta.namespace as string,
@@ -193,7 +251,9 @@ export class KubectlRunner {
   async getConfigMaps(context: string, namespace: string): Promise<ConfigMapRow[]> {
     const nsFlag = namespace === "_all" ? "--all-namespaces" : `--namespace=${namespace}`;
     const raw = await this.run(
-      ["get", "configmaps", "-o", "json", nsFlag, `--context=${context}`], context);
+      ["get", "configmaps", "-o", "json", nsFlag, `--context=${context}`],
+      context,
+    );
     const obj = JSON.parse(raw);
     return (obj.items as unknown[]).map((item: unknown) => {
       const i = item as Record<string, unknown>;
@@ -223,14 +283,15 @@ export class KubectlRunner {
       const i = item as Record<string, unknown>;
       const meta = i.metadata as Record<string, unknown>;
       const status = i.status as Record<string, unknown>;
-      const conds = (status.conditions as Array<Record<string,unknown>>) ?? [];
-      const ready = conds.find(c => c.type === "Ready")?.status === "True" ? "Ready" : "NotReady";
-      const labels = meta.labels as Record<string,string> ?? {};
-      const roles = Object.keys(labels)
-        .filter(k => k.startsWith("node-role.kubernetes.io/"))
-        .map(k => k.replace("node-role.kubernetes.io/", ""))
-        .join(",") || "worker";
-      const nodeInfo = (status.nodeInfo as Record<string,string>) ?? {};
+      const conds = (status.conditions as Array<Record<string, unknown>>) ?? [];
+      const ready = conds.find((c) => c.type === "Ready")?.status === "True" ? "Ready" : "NotReady";
+      const labels = (meta.labels as Record<string, string>) ?? {};
+      const roles =
+        Object.keys(labels)
+          .filter((k) => k.startsWith("node-role.kubernetes.io/"))
+          .map((k) => k.replace("node-role.kubernetes.io/", ""))
+          .join(",") || "worker";
+      const nodeInfo = (status.nodeInfo as Record<string, string>) ?? {};
       const top = topMap.get(meta.name as string);
       return {
         name: meta.name as string,
@@ -248,7 +309,7 @@ export class KubectlRunner {
     const nsFlag = namespace === "_all" ? "--all-namespaces" : `--namespace=${namespace}`;
     const raw = await this.run(
       ["get", "events", "--sort-by=.lastTimestamp", "-o", "json", nsFlag, `--context=${context}`],
-      context
+      context,
     );
     const obj = JSON.parse(raw);
     return ((obj.items as unknown[]) ?? [])
@@ -262,7 +323,7 @@ export class KubectlRunner {
           reason: i.reason as string,
           object: `${inv.kind}/${inv.name}`,
           namespace: meta.namespace as string,
-          message: (i.message as string ?? "").slice(0, 120),
+          message: ((i.message as string) ?? "").slice(0, 120),
         };
       })
       .reverse(); // newest first
@@ -275,17 +336,26 @@ export class KubectlRunner {
     const base = [`--context=${context}`, `--namespace=${namespace}`];
     const [podJson, eventsRaw, describeRaw] = await Promise.all([
       this.run(["get", "pod", name, "-o", "json", ...base], context),
-      this.runSafe(["get", "events", "--field-selector", `involvedObject.name=${name}`,
-        "--sort-by=.metadata.creationTimestamp", ...base], context),
+      this.runSafe(
+        [
+          "get",
+          "events",
+          "--field-selector",
+          `involvedObject.name=${name}`,
+          "--sort-by=.metadata.creationTimestamp",
+          ...base,
+        ],
+        context,
+      ),
       this.runSafe(["describe", "pod", name, ...base], context),
     ]);
 
     const pod = JSON.parse(podJson) as Record<string, unknown>;
     const spec = pod.spec as Record<string, unknown>;
     const status = pod.status as Record<string, unknown>;
-    const cs = ((status.containerStatuses as unknown[]) ?? []) as Array<Record<string,unknown>>;
+    const cs = ((status.containerStatuses as unknown[]) ?? []) as Array<Record<string, unknown>>;
 
-    const containers = cs.map(c => {
+    const containers = cs.map((c) => {
       const state = c.state as Record<string, unknown>;
       const last = c.lastState as Record<string, unknown>;
       return {
@@ -299,11 +369,19 @@ export class KubectlRunner {
     });
 
     const containerSpecs = (spec.containers as Array<{ name: string }>) ?? [];
-    const logResults = await Promise.all(containerSpecs.map(async ({ name: cn }) => ({
-      name: cn,
-      current: await this.runSafe(["logs", name, "-c", cn, `--tail=${tailLines}`, ...base], context),
-      previous: await this.runSafe(["logs", name, "-c", cn, `--tail=${tailLines}`, "--previous", ...base], context),
-    })));
+    const logResults = await Promise.all(
+      containerSpecs.map(async ({ name: cn }) => ({
+        name: cn,
+        current: await this.runSafe(
+          ["logs", name, "-c", cn, `--tail=${tailLines}`, ...base],
+          context,
+        ),
+        previous: await this.runSafe(
+          ["logs", name, "-c", cn, `--tail=${tailLines}`, "--previous", ...base],
+          context,
+        ),
+      })),
+    );
 
     const logs: Record<string, string> = {};
     const previousLogs: Record<string, string> = {};
@@ -313,15 +391,23 @@ export class KubectlRunner {
     }
 
     return {
-      name, namespace, context,
+      name,
+      namespace,
+      context,
       phase: (status.phase as string) ?? "Unknown",
       nodeName: (spec.nodeName as string) ?? "",
       startTime: (status.startTime as string) ?? "",
       conditions: ((status.conditions as unknown[]) ?? []).map((c: unknown) => {
         const cc = c as Record<string, unknown>;
-        return { type: cc.type as string, status: cc.status as string, reason: cc.reason as string };
+        return {
+          type: cc.type as string,
+          status: cc.status as string,
+          reason: cc.reason as string,
+        };
       }),
-      containers, logs, previousLogs,
+      containers,
+      logs,
+      previousLogs,
       events: eventsRaw,
       describe: describeRaw,
     };
@@ -331,12 +417,13 @@ export class KubectlRunner {
 
   private podStatus(item: Record<string, unknown>): string {
     const status = item.status as Record<string, unknown>;
-    const cs = (status.containerStatuses as Array<Record<string,unknown>>) ?? [];
+    const cs = (status.containerStatuses as Array<Record<string, unknown>>) ?? [];
     for (const c of cs) {
       const state = c.state as Record<string, unknown>;
-      if (state?.waiting) return (state.waiting as Record<string,unknown>).reason as string ?? "Waiting";
+      if (state?.waiting)
+        return ((state.waiting as Record<string, unknown>).reason as string) ?? "Waiting";
       if (state?.terminated) {
-        const r = (state.terminated as Record<string,unknown>).reason as string;
+        const r = (state.terminated as Record<string, unknown>).reason as string;
         if (r && r !== "Completed") return r;
       }
     }
@@ -347,9 +434,9 @@ export class KubectlRunner {
     const key = Object.keys(state ?? {})[0];
     if (!key) return "unknown";
     const d = state[key] as Record<string, unknown>;
-    if (key === "waiting")    return `Waiting: ${d?.reason ?? ""}`;
+    if (key === "waiting") return `Waiting: ${d?.reason ?? ""}`;
     if (key === "terminated") return `Terminated: ${d?.reason ?? ""} (exit ${d?.exitCode ?? "?"})`;
-    if (key === "running")    return `Running since ${d?.startedAt ?? ""}`;
+    if (key === "running") return `Running since ${d?.startedAt ?? ""}`;
     return key;
   }
 
@@ -358,11 +445,13 @@ export class KubectlRunner {
     try {
       const diff = Date.now() - new Date(ts).getTime();
       const s = Math.floor(diff / 1000);
-      if (s < 60)   return `${s}s`;
-      if (s < 3600) return `${Math.floor(s/60)}m`;
-      if (s < 86400) return `${Math.floor(s/3600)}h`;
-      return `${Math.floor(s/86400)}d`;
-    } catch { return "—"; }
+      if (s < 60) return `${s}s`;
+      if (s < 3600) return `${Math.floor(s / 60)}m`;
+      if (s < 86400) return `${Math.floor(s / 3600)}h`;
+      return `${Math.floor(s / 86400)}d`;
+    } catch {
+      return "—";
+    }
   }
 }
 

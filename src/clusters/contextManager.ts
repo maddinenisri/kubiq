@@ -53,10 +53,7 @@ export class ContextManager {
   private buildProfile(contextName: string): ClusterProfile {
     const manualOverrides = vscode.workspace
       .getConfiguration("kubiq")
-      .get<Record<string, { profile: string; region: string }>>(
-        "clusterProfiles",
-        {}
-      );
+      .get<Record<string, { profile: string; region: string }>>("clusterProfiles", {});
 
     // Start with auto-detected values
     const detected = this.autoDetect(contextName);
@@ -79,8 +76,7 @@ export class ContextManager {
     profile: string;
     region: string;
   } {
-    const kubeconfigPath =
-      process.env.KUBECONFIG ?? path.join(os.homedir(), ".kube", "config");
+    const kubeconfigPath = process.env.KUBECONFIG ?? path.join(os.homedir(), ".kube", "config");
 
     try {
       const raw = fs.readFileSync(kubeconfigPath, "utf8");
@@ -127,19 +123,19 @@ export class ContextManager {
 
   /** Returns ALL contexts in kubeconfig */
   listAllContexts(): string[] {
-    const kubeconfigPath =
-      process.env.KUBECONFIG ?? path.join(os.homedir(), ".kube", "config");
+    const kubeconfigPath = process.env.KUBECONFIG ?? path.join(os.homedir(), ".kube", "config");
     try {
       const raw = fs.readFileSync(kubeconfigPath, "utf8");
       const config = yaml.load(raw) as KubeConfig;
       return config.contexts?.map((c) => c.name) ?? [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   }
 
   /** Returns all EKS contexts found in kubeconfig */
   listEksContexts(): string[] {
-    const kubeconfigPath =
-      process.env.KUBECONFIG ?? path.join(os.homedir(), ".kube", "config");
+    const kubeconfigPath = process.env.KUBECONFIG ?? path.join(os.homedir(), ".kube", "config");
     try {
       const raw = fs.readFileSync(kubeconfigPath, "utf8");
       const config = yaml.load(raw) as KubeConfig;
