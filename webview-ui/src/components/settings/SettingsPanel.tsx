@@ -52,14 +52,11 @@ export function SettingsPanel() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  const handleSave = useCallback(
-    (key: string, value: unknown) => {
-      postMessage({ type: "updateSetting", key, value } as never);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1500);
-    },
-    [],
-  );
+  const handleSave = useCallback((key: string, value: unknown) => {
+    postMessage({ type: "updateSetting", key, value } as never);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  }, []);
 
   const updateField = useCallback(
     <K extends keyof Settings>(key: K, value: Settings[K], settingKey: string) => {
@@ -171,7 +168,9 @@ export function SettingsPanel() {
                 description="Additional instructions appended to the AI prompt. Use for team-specific context."
                 placeholder="e.g., Focus on Java Spring Boot errors. Always suggest Helm chart fixes."
                 value={settings.customInstructions}
-                onChange={(v) => updateField("customInstructions", v, "kubiq.ai.customInstructions")}
+                onChange={(v) =>
+                  updateField("customInstructions", v, "kubiq.ai.customInstructions")
+                }
               />
             </div>
           )}
@@ -184,14 +183,18 @@ export function SettingsPanel() {
                 label="Sanitize Secrets"
                 description="Strip AWS keys, JWT tokens, passwords, connection strings before sending to AI."
                 value={settings.sanitizeSecrets}
-                onChange={(v) => updateField("sanitizeSecrets", v, "kubiq.guardrails.sanitizeSecrets")}
+                onChange={(v) =>
+                  updateField("sanitizeSecrets", v, "kubiq.guardrails.sanitizeSecrets")
+                }
               />
 
               <ToggleField
                 label="Redact Environment Variables"
                 description="Redact values of sensitive env vars (SECRET, PASSWORD, TOKEN, etc.) in pod describe output."
                 value={settings.sanitizeEnvVars}
-                onChange={(v) => updateField("sanitizeEnvVars", v, "kubiq.guardrails.sanitizeEnvVars")}
+                onChange={(v) =>
+                  updateField("sanitizeEnvVars", v, "kubiq.guardrails.sanitizeEnvVars")
+                }
               />
 
               <ToggleField
@@ -199,19 +202,35 @@ export function SettingsPanel() {
                 description="Show warning badges on destructive kubectl commands (delete, drain, scale-to-zero) in AI responses."
                 value={settings.flagDestructiveCommands}
                 onChange={(v) =>
-                  updateField("flagDestructiveCommands", v, "kubiq.guardrails.flagDestructiveCommands")
+                  updateField(
+                    "flagDestructiveCommands",
+                    v,
+                    "kubiq.guardrails.flagDestructiveCommands",
+                  )
                 }
               />
 
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#e8ecf8", marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#e8ecf8",
+                    marginBottom: 4,
+                  }}
+                >
                   Custom Redaction Patterns
                 </label>
                 <p style={{ fontSize: 11, color: "#5a6380", marginBottom: 8 }}>
-                  Regex patterns to redact from data sent to AI. Each match is replaced with [REDACTED].
+                  Regex patterns to redact from data sent to AI. Each match is replaced with
+                  [REDACTED].
                 </p>
                 {settings.redactPatterns.map((p, i) => (
-                  <div key={i} style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}>
+                  <div
+                    key={i}
+                    style={{ display: "flex", gap: 4, marginBottom: 4, alignItems: "center" }}
+                  >
                     <code
                       style={{
                         flex: 1,
@@ -319,7 +338,15 @@ export function SettingsPanel() {
               <SectionHeader title="Knowledge Base" />
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#e8ecf8", marginBottom: 8 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#e8ecf8",
+                    marginBottom: 8,
+                  }}
+                >
                   Built-in Skills ({settings.loadedSkills.length})
                 </label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -341,15 +368,25 @@ export function SettingsPanel() {
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#e8ecf8", marginBottom: 4 }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: "#e8ecf8",
+                    marginBottom: 4,
+                  }}
+                >
                   Workspace Rules
                 </label>
                 <p style={{ fontSize: 11, color: "#5a6380", marginBottom: 8 }}>
-                  Add custom .md files to <code style={{ color: "#a0d8c8" }}>.kubiq/rules/</code> in your workspace.
-                  They override built-in skills with the same name.
+                  Add custom .md files to <code style={{ color: "#a0d8c8" }}>.kubiq/rules/</code> in
+                  your workspace. They override built-in skills with the same name.
                 </p>
                 {settings.workspaceRules.length === 0 ? (
-                  <p style={{ fontSize: 11, color: "#5a6380", fontStyle: "italic" }}>No workspace rules found</p>
+                  <p style={{ fontSize: 11, color: "#5a6380", fontStyle: "italic" }}>
+                    No workspace rules found
+                  </p>
                 ) : (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {settings.workspaceRules.map((r) => (
@@ -381,19 +418,54 @@ export function SettingsPanel() {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <h2 style={{ fontSize: 14, fontWeight: 700, color: "#e8ecf8", marginBottom: 16, paddingBottom: 8, borderBottom: "1px solid #252a38" }}>
+    <h2
+      style={{
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#e8ecf8",
+        marginBottom: 16,
+        paddingBottom: 8,
+        borderBottom: "1px solid #252a38",
+      }}
+    >
       {title}
     </h2>
   );
 }
 
-function ToggleField({ label, description, value, onChange }: {
-  label: string; description: string; value: boolean; onChange: (v: boolean) => void;
+function ToggleField({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
 }) {
   return (
-    <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+    <div
+      style={{
+        marginBottom: 20,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 16,
+      }}
+    >
       <div>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#e8ecf8", marginBottom: 2 }}>{label}</label>
+        <label
+          style={{
+            display: "block",
+            fontSize: 13,
+            fontWeight: 600,
+            color: "#e8ecf8",
+            marginBottom: 2,
+          }}
+        >
+          {label}
+        </label>
         <p style={{ fontSize: 11, color: "#5a6380", maxWidth: 400 }}>{description}</p>
       </div>
       <button
@@ -428,13 +500,32 @@ function ToggleField({ label, description, value, onChange }: {
   );
 }
 
-function SelectField({ label, description, value, options, onChange }: {
-  label: string; description: string; value: string;
-  options: Array<{ value: string; label: string }>; onChange: (v: string) => void;
+function SelectField({
+  label,
+  description,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (v: string) => void;
 }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#e8ecf8", marginBottom: 2 }}>{label}</label>
+      <label
+        style={{
+          display: "block",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#e8ecf8",
+          marginBottom: 2,
+        }}
+      >
+        {label}
+      </label>
       <p style={{ fontSize: 11, color: "#5a6380", marginBottom: 6 }}>{description}</p>
       <select
         value={value}
@@ -453,19 +544,41 @@ function SelectField({ label, description, value, options, onChange }: {
         }}
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
         ))}
       </select>
     </div>
   );
 }
 
-function TextAreaField({ label, description, placeholder, value, onChange }: {
-  label: string; description: string; placeholder: string; value: string; onChange: (v: string) => void;
+function TextAreaField({
+  label,
+  description,
+  placeholder,
+  value,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
 }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#e8ecf8", marginBottom: 2 }}>{label}</label>
+      <label
+        style={{
+          display: "block",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#e8ecf8",
+          marginBottom: 2,
+        }}
+      >
+        {label}
+      </label>
       <p style={{ fontSize: 11, color: "#5a6380", marginBottom: 6 }}>{description}</p>
       <textarea
         value={value}
@@ -491,12 +604,36 @@ function TextAreaField({ label, description, placeholder, value, onChange }: {
   );
 }
 
-function NumberField({ label, description, value, min, max, step, onChange }: {
-  label: string; description: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void;
+function NumberField({
+  label,
+  description,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
 }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#e8ecf8", marginBottom: 2 }}>{label}</label>
+      <label
+        style={{
+          display: "block",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#e8ecf8",
+          marginBottom: 2,
+        }}
+      >
+        {label}
+      </label>
       <p style={{ fontSize: 11, color: "#5a6380", marginBottom: 6 }}>{description}</p>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <input
@@ -508,7 +645,9 @@ function NumberField({ label, description, value, min, max, step, onChange }: {
           onChange={(e) => onChange(parseInt(e.target.value))}
           style={{ flex: 1, maxWidth: 250, accentColor: "#4af0c8" }}
         />
-        <span style={{ fontSize: 12, fontFamily: "monospace", color: "#4af0c8", minWidth: 40 }}>{value}</span>
+        <span style={{ fontSize: 12, fontFamily: "monospace", color: "#4af0c8", minWidth: 40 }}>
+          {value}
+        </span>
       </div>
     </div>
   );

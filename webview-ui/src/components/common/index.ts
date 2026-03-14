@@ -7,3 +7,6 @@ export { DataTable, type Column } from "./DataTable";
 export { Markdown } from "./Markdown";
 export { LoadingSpinner } from "./LoadingSpinner";
 export { ErrorBanner } from "./ErrorBanner";
+export { ValidationBadge } from "./ValidationBadge";
+export { ValidationResults } from "./ValidationResults";
+export { CommandCard } from "./CommandCard";

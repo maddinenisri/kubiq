@@ -59,15 +59,38 @@ export class PodPanel {
     });
 
     // Forward webview messages to registered handlers
-    panel.webview.onDidReceiveMessage((msg: { type: string; text?: string; yaml?: string }) => {
+    panel.webview.onDidReceiveMessage(async (msg: Record<string, unknown>) => {
       if (msg.type === "ready" && !instance._ready) {
         instance._ready = true;
         instance.readyHandler?.();
       }
-      if (msg.type === "user_message") instance.userMessageHandler?.(msg.text ?? "");
+      if (msg.type === "user_message") instance.userMessageHandler?.((msg.text as string) ?? "");
       if (msg.type === "new_chat") instance.newChatHandler?.();
       if (msg.type === "applyYaml" && msg.yaml) {
-        instance.applyYamlHandler?.(msg.yaml);
+        instance.applyYamlHandler?.(msg.yaml as string);
+      }
+      if (msg.type === "validateYaml" && msg.yaml) {
+        const { validateYaml } = await import("../ai/yamlValidator");
+        const result = validateYaml(msg.yaml as string);
+        instance.post({ type: "validationResult", result });
+      }
+      if (msg.type === "runCommand" && msg.command) {
+        try {
+          const { runner } = await import("../services/KubectlService");
+          const args = (msg.command as string).replace(/^kubectl\s+/, "").split(/\s+/);
+          const { execFile } = require("child_process");
+          const { promisify } = require("util");
+          const exec = promisify(execFile);
+          const { stdout } = await exec("kubectl", args, { maxBuffer: 10 * 1024 * 1024 });
+          instance.post({ type: "commandOutput", command: msg.command, output: stdout });
+        } catch (e: unknown) {
+          const err = e as { stderr?: string; message?: string };
+          instance.post({
+            type: "commandOutput",
+            command: msg.command,
+            error: err.stderr ?? err.message ?? String(e),
+          });
+        }
       }
     });
 
