@@ -48,7 +48,7 @@ export class CrashAnalyzer {
     const prevLogsSummary = Object.entries(snapshot.previousLogs)
       .map(([name, log]) => `=== Previous: ${name} ===\n${truncate(log, 2000)}`).join("\n\n");
 
-    return `You are an expert Kubernetes and AWS EKS SRE acting as an interactive assistant inside a VS Code pod diagnostic panel.
+    return `You are an expert Kubernetes SRE acting as an interactive assistant inside a VS Code pod diagnostic panel.
 
 ## Pod Snapshot
 Name: ${snapshot.name}  Namespace: ${snapshot.namespace}

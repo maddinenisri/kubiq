@@ -1,7 +1,7 @@
 {
   "name": "kubiq",
   "displayName": "Kubiq",
-  "description": "Standalone Kubernetes intelligence dashboard for AWS EKS",
+  "description": "Standalone Kubernetes intelligence dashboard — pod diagnostics, crash analysis, multi-cluster management with AI",
   "version": "0.2.0",
   "publisher": "kubiq",
   "author": {
@@ -15,8 +15,8 @@
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other", "Debuggers"],
   "keywords": [
-    "kubernetes", "eks", "aws", "pod", "diagnostics",
-    "kubectl", "crash", "logs", "kubiq", "dashboard"
+    "kubernetes", "k8s", "eks", "gke", "aks", "pod", "diagnostics",
+    "kubectl", "crash", "logs", "kubiq", "dashboard", "cluster"
   ],
   "activationEvents": ["onView:kubiq.dashboard", "onStartupFinished"],
   "main": "./out/extension.js",

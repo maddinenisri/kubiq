@@ -1,12 +1,12 @@
 # Kubiq
 
-Standalone Kubernetes intelligence dashboard for AWS EKS. No dependencies on other extensions — Kubiq runs on its own.
+Standalone Kubernetes intelligence dashboard for VS Code. Pod diagnostics, crash analysis, and multi-cluster management with AI — works with any Kubernetes cluster (EKS, GKE, AKS, on-prem, kind, minikube).
 
 ## What's New in v0.2.0
 
-- **Fully standalone** — no `extensionDependencies`, no ms-kubernetes-tools needed
-- **Sidebar dashboard** — Kubiq hexagon icon in the VS Code activity bar with:
-  - **Filter bar** — Profile, Cluster, Namespace dropdowns (auto-grouped by AWS profile + region)
+- **Fully standalone** — no extension dependencies required
+- **Sidebar dashboard** — Kubiq icon in the VS Code activity bar with:
+  - **Filter bar** — Profile, Cluster, Namespace dropdowns (auto-grouped for EKS/cloud clusters)
   - **Status bar** — live connection indicator + metrics-server badge
   - **Resource tabs** — Pods / Deploys / Services / ConfigMaps / Nodes / Events with count badges
   - **Sortable tables** — click any column header to sort
@@ -16,7 +16,7 @@ Standalone Kubernetes intelligence dashboard for AWS EKS. No dependencies on oth
 
 ## Features
 
-- **Sidebar Dashboard** — browse all Kubernetes resources from the activity bar. Filter by AWS profile, cluster, and namespace in seconds.
+- **Sidebar Dashboard** — browse all Kubernetes resources from the activity bar. Filter by profile, cluster, and namespace in seconds.
 
 - **Pod Diagnosis Panel** — click any pod to open an editor tab with:
   - Container status, restart counts, last state
@@ -28,24 +28,30 @@ Standalone Kubernetes intelligence dashboard for AWS EKS. No dependencies on oth
 
 - **Crash Pattern Detection** — instant local scan for OOMKilled, CrashLoopBackOff, ImagePullBackOff, probe failures, scheduling errors, volume mount issues
 
-- **Multi-account EKS** — auto-detects AWS profile and region from kubeconfig `exec` block, with per-context manual overrides
+- **Multi-cluster support** — works with any kubeconfig context. For AWS EKS clusters, auto-detects profile and region from the `exec` block with per-context manual overrides.
 
 - **Session Persistence** — Claude conversations survive panel close/reopen and VS Code restarts
 
 ## Prerequisites
 
 ```bash
-# AWS CLI v2
-aws --version
-
-# kubectl
+# kubectl (any cluster — EKS, GKE, AKS, on-prem, kind, minikube)
 kubectl version --client
 
 # Claude Code CLI (required for AI diagnosis)
 npm install -g @anthropic-ai/claude-code
 claude  # authenticate once
 
-# At least one EKS cluster in kubeconfig
+# At least one cluster in kubeconfig
+kubectl config get-contexts
+```
+
+### EKS-specific (optional)
+
+```bash
+# AWS CLI v2 — only needed for EKS clusters
+aws --version
+
 aws eks update-kubeconfig \
   --name my-cluster \
   --region us-east-1 \
@@ -74,8 +80,8 @@ code --install-extension kubiq-0.2.0.vsix
 
 ### Sidebar Dashboard
 
-1. Click the Kubiq icon (hexagon with K) in the activity bar
-2. Select your AWS profile and cluster from the dropdowns
+1. Click the Kubiq icon (cube-in-hexagon) in the activity bar
+2. Select your profile and cluster from the dropdowns
 3. Choose a namespace (or "all namespaces")
 4. Browse Pods, Deployments, Services, ConfigMaps, Nodes, Events
 5. Click any pod row or hover and click "AI" to open the diagnosis panel
@@ -88,27 +94,27 @@ code --install-extension kubiq-0.2.0.vsix
 
 | Setting | Description | Default |
 |---|---|---|
-| `kubiq.clusterProfiles` | Manual AWS profile/region overrides per kubeconfig context | `{}` |
+| `kubiq.clusterProfiles` | Manual profile/region overrides per kubeconfig context | `{}` |
 | `kubiq.logTailLines` | Number of log lines to fetch per container | `500` |
 
-### AWS Profile Override (settings.json)
+### Profile Override (settings.json)
 
 ```json
 {
   "kubiq.clusterProfiles": {
-    "prod-cluster-context-name": {
+    "my-eks-cluster": {
       "profile": "prod-admin",
       "region": "us-east-1"
     },
-    "staging-cluster": {
-      "profile": "staging",
-      "region": "eu-west-1"
+    "my-gke-cluster": {
+      "profile": "default",
+      "region": "us-central1"
     }
   }
 }
 ```
 
-Auto-detection reads `--profile` and `--region` flags from the `exec` block in `~/.kube/config`. Manual overrides win per-field.
+For EKS clusters, auto-detection reads `--profile` and `--region` flags from the `exec` block in `~/.kube/config`. For other clusters, Kubiq uses the context as-is from kubeconfig.
 
 ## Building from Source
 
@@ -143,7 +149,7 @@ src/
 ├── kubectl/
 │   └── runner.ts             # all kubectl calls (pods, deploys, nodes, etc.)
 ├── clusters/
-│   └── contextManager.ts     # kubeconfig parsing, AWS profile resolution
+│   └── contextManager.ts     # kubeconfig parsing, profile resolution
 ├── pods/
 │   └── crashAnalyzer.ts      # local crash pattern matching + Claude prompt builder
 ├── claude/
@@ -157,11 +163,13 @@ src/
 
 **Standalone** — Kubiq has zero extension dependencies. It reads `~/.kube/config` directly and shells out to `kubectl` for all cluster operations.
 
-**kubectl over client libraries** — EKS uses IAM token-based auth refreshed via `aws eks get-token`. Shelling to `kubectl` handles this transparently via the kubeconfig `exec` block.
+**Any Kubernetes** — Works with any cluster that `kubectl` can reach. EKS, GKE, AKS, on-prem, kind, minikube. AWS-specific features (profile/region detection) activate automatically when EKS exec blocks are detected.
+
+**kubectl over client libraries** — Kubernetes auth is handled transparently by kubectl via kubeconfig. No need to reimplement token refresh for each cloud provider.
 
 **Claude CLI over API** — Uses `claude --print --output-format stream-json` as a persistent subprocess. Supports session resume, streaming token deltas, and inherits your existing Claude authentication.
 
-**Sidebar-first** — Instead of a tree view, Kubiq uses a filter-bar workflow: select profile, cluster, namespace, then browse resources in sortable tables. Faster than navigating a deep tree.
+**Sidebar-first** — Instead of a tree view, Kubiq uses a filter-bar workflow: select profile, cluster, namespace, then browse resources in sortable tables.
 
 **Panel-per-pod** — Each pod opens a deduplicated editor tab. Reopening the same pod brings the existing panel to focus.
 
@@ -180,7 +188,7 @@ To limit exposure:
 - [ ] Resource quota dashboard per namespace
 - [ ] Streaming log tail
 - [ ] Multi-cluster context switcher in status bar
-- [ ] EKS-specific: node group details, add-on versions, CloudWatch log links
+- [ ] Cloud-specific panels: EKS node groups, GKE autopilot, AKS node pools
 
 ## License
 
