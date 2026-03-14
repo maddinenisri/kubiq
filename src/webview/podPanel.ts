@@ -12,6 +12,7 @@ export class PodPanel {
   private disposed = false;
   private userMessageHandler?: UserMessageHandler;
   private readyHandler?: ReadyHandler;
+  private newChatHandler?: () => void;
   private snapshotData?: PodSnapshot;
   private _ready = false;
 
@@ -56,6 +57,7 @@ export class PodPanel {
         instance.readyHandler?.();
       }
       if (msg.type === "user_message") instance.userMessageHandler?.(msg.text ?? "");
+      if (msg.type === "new_chat") instance.newChatHandler?.();
     });
 
     return instance;
@@ -74,6 +76,9 @@ export class PodPanel {
   }
   onUserMessage(fn: UserMessageHandler) {
     this.userMessageHandler = fn;
+  }
+  onNewChat(fn: () => void) {
+    this.newChatHandler = fn;
   }
 
   // ── Post messages to webview ─────────────────────────────────────────────────
@@ -162,6 +167,12 @@ ${styles()}
 
 <!-- ── CHAT TAB ─────────────────────────────────────────────────────────── -->
 <section id="tab-chat" class="tab-panel active">
+  <div class="chat-toolbar">
+    <button id="newChatBtn" class="toolbar-btn" title="Clear chat and start a new session">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a.5.5 0 01.5.5v6h6a.5.5 0 010 1h-6v6a.5.5 0 01-1 0v-6h-6a.5.5 0 010-1h6v-6A.5.5 0 018 1z"/></svg>
+      New Chat
+    </button>
+  </div>
   <div class="chat-messages" id="chatMessages">
     <!-- history + streaming messages rendered here -->
   </div>
@@ -274,6 +285,15 @@ ${styles()}
   sendBtn.addEventListener('click', sendMessage);
   chatInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  // New Chat button
+  document.getElementById('newChatBtn').addEventListener('click', function() {
+    chatMessages.innerHTML = '';
+    streaming = false;
+    streamingEl = null;
+    enableInput();
+    vscode.postMessage({ type: 'new_chat' });
   });
 
   // ── Chat rendering ───────────────────────────────────────────────────────
@@ -577,6 +597,15 @@ function styles(): string {
                                    border-radius:4px; font-size:11.5px; overflow-x:auto;
                                    color:#a0d8c8; margin:0; border:1px solid var(--border); }
     .ai-bubble strong { color:#e8ecf8; }
+
+    /* CHAT TOOLBAR */
+    .chat-toolbar { display:flex; justify-content:flex-end; padding:4px 10px; background:var(--bg2);
+                     border-bottom:1px solid var(--border); flex-shrink:0; }
+    .toolbar-btn { background:var(--bg3); border:1px solid var(--border2); color:var(--dim);
+                    padding:3px 10px; border-radius:4px; cursor:pointer; font-size:10px;
+                    font-family:var(--font-ui); display:flex; align-items:center; gap:4px;
+                    transition:color .15s, border-color .15s; }
+    .toolbar-btn:hover { color:var(--accent); border-color:var(--accent); }
 
     /* CODE BLOCK COPY BUTTON */
     .code-block-wrap { position:relative; margin:6px 0; }

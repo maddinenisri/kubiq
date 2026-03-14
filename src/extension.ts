@@ -117,6 +117,14 @@ async function runDiagnosis(
     panel.sendThinking();
     session.send(text);
   });
+
+  panel.onNewChat(() => {
+    sessionStore.clear(podKey);
+    activeSessions.get(podKey)?.dispose();
+    activeSessions.delete(podKey);
+    // Re-fetch snapshot and start fresh session
+    runDiagnosis(extCtx, podName, namespace, clusterContext);
+  });
 }
 
 function createSession(podKey: string, resumeId?: string): ClaudeSession {
