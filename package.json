@@ -26,7 +26,10 @@
         {
           "id": "kubiq-sidebar",
           "title": "Kubiq",
-          "icon": "media/icon.svg"
+          "icon": {
+            "light": "media/icon-light.svg",
+            "dark": "media/icon-dark.svg"
+          }
         }
       ]
     },

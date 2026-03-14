@@ -1,12 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <!-- Hexagon outline only -->
   <polygon points="12,1.5 21.5,7 21.5,17 12,22.5 2.5,17 2.5,7" fill="none" stroke="#C5C5C5" stroke-width="1.2"/>
-  <!-- K vertical bar -->
   <line x1="8.5" y1="7" x2="8.5" y2="17" stroke="#C5C5C5" stroke-width="1.8" stroke-linecap="round"/>
-  <!-- K upper diagonal -->
   <line x1="8.5" y1="12" x2="14.5" y2="7" stroke="#C5C5C5" stroke-width="1.8" stroke-linecap="round"/>
-  <!-- K lower diagonal -->
   <line x1="10.5" y1="12.8" x2="15.5" y2="17" stroke="#C5C5C5" stroke-width="1.8" stroke-linecap="round"/>
-  <!-- Pulse dot -->
   <circle cx="16.5" cy="7.5" r="1.8" fill="#C5C5C5"/>
 </svg>
