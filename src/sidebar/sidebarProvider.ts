@@ -60,6 +60,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         }
 
+        case "describeResource": {
+          const resType = msg.resource as string;
+          const name = msg.name as string;
+          const ns = msg.namespace as string;
+          const ctx = msg.context as string;
+          await this.handleDescribeResource(resType, name, ns, ctx);
+          break;
+        }
+
         case "restartPod": {
           const pod = msg.pod as string;
           const ns = msg.namespace as string;
@@ -186,6 +195,32 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       view.webview.postMessage({ type: "data", resource, rows });
     } catch (e) {
       this.sendError(view, `Failed to fetch ${resource}: ${(e as Error).message}`);
+    }
+  }
+
+  private async handleDescribeResource(resType: string, name: string, ns: string, ctx: string) {
+    // Map resource tab name to kubectl resource kind
+    const kindMap: Record<string, string> = {
+      deployments: "deployment",
+      services: "service",
+      configmaps: "configmap",
+      nodes: "node",
+      events: "event",
+    };
+    const kind = kindMap[resType] ?? resType;
+    const nsFlag = kind === "node" ? "" : `-n ${ns}`;
+
+    try {
+      const output = await runner.describe(ctx, kind, name, ns);
+      const doc = await vscode.workspace.openTextDocument({
+        content: output,
+        language: "yaml",
+      });
+      await vscode.window.showTextDocument(doc, { preview: true });
+    } catch (e) {
+      vscode.window.showErrorMessage(
+        `Kubiq: failed to describe ${kind}/${name}: ${(e as Error).message}`,
+      );
     }
   }
 

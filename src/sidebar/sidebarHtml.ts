@@ -597,8 +597,11 @@ tbody tr:hover .row-actions{opacity:1;}
         }
         const name = tr.dataset.name;
         const ns   = tr.dataset.ns;
-        if (res === 'pods') {
+        const resType = tr.dataset.res;
+        if (resType === 'pods') {
           vscode.postMessage({ type:'diagnose', pod:name, namespace:ns, context:state.currentCtx });
+        } else if (resType && name) {
+          vscode.postMessage({ type:'describeResource', resource:resType, name:name, namespace:ns, context:state.currentCtx });
         }
       });
     });

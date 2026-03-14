@@ -329,6 +329,14 @@ export class KubectlRunner {
       .reverse(); // newest first
   }
 
+  // ── Describe any resource ──────────────────────────────────────────────
+
+  async describe(context: string, kind: string, name: string, namespace: string): Promise<string> {
+    const args = ["describe", kind, name, `--context=${context}`];
+    if (kind !== "node") args.push(`--namespace=${namespace}`);
+    return this.run(args, context);
+  }
+
   // ── Pod actions ──────────────────────────────────────────────────────────
 
   async deletePod(context: string, namespace: string, name: string): Promise<void> {

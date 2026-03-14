@@ -52,7 +52,7 @@ export class PodPanel {
 
     // Forward webview messages to registered handlers
     panel.webview.onDidReceiveMessage((msg: { type: string; text?: string }) => {
-      if (msg.type === "ready") {
+      if (msg.type === "ready" && !instance._ready) {
         instance._ready = true;
         instance.readyHandler?.();
       }
