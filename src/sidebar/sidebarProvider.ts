@@ -214,52 +214,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     ns: string,
     ctx: string,
   ) {
-    const kindMap: Record<string, string> = {
-      pods: "pod",
-      deployments: "deployment",
-      services: "service",
-      configmaps: "configmap",
-      nodes: "node",
-    };
-    const kind = kindMap[resType] ?? resType;
-
-    try {
-      const yaml = await runner.getYaml(ctx, kind, name, ns);
-      const doc = await vscode.workspace.openTextDocument({
-        content: yaml,
-        language: "yaml",
-      });
-      const editor = await vscode.window.showTextDocument(doc);
-
-      // Watch for save — apply changes
-      const disposable = vscode.workspace.onDidSaveTextDocument(async (saved) => {
-        if (saved !== doc) return;
-
-        const confirm = await vscode.window.showWarningMessage(
-          `Apply changes to ${kind}/${name}?`,
-          { modal: true },
-          "Apply",
-        );
-        if (confirm !== "Apply") return;
-
-        try {
-          const result = await runner.applyYaml(ctx, saved.getText());
-          vscode.window.showInformationMessage(`Kubiq: ${result.trim()}`);
-        } catch (e) {
-          vscode.window.showErrorMessage(`Kubiq: apply failed — ${(e as Error).message}`);
-        }
-      });
-
-      // Clean up listener when editor is closed
-      const closeDisposable = vscode.window.onDidChangeVisibleTextEditors((editors) => {
-        if (!editors.some((e) => e.document === doc)) {
-          disposable.dispose();
-          closeDisposable.dispose();
-        }
-      });
-    } catch (e) {
-      this.sendError(view, `Failed to get YAML: ${(e as Error).message}`);
-    }
+    // Open in themed resource panel with editable YAML tab
+    await this.handleDescribeResource(resType, name, ns, ctx);
   }
 
   private async handleDescribeResource(resType: string, name: string, ns: string, ctx: string) {
@@ -285,6 +241,25 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         { enableScripts: true, retainContextWhenHidden: true },
       );
       panel.webview.html = buildResourceHtml(kind, name, ns, ctx, describeOut, yamlOut);
+
+      // Handle apply from the editable YAML tab
+      panel.webview.onDidReceiveMessage(async (msg: Record<string, unknown>) => {
+        if (msg.type === "applyYaml") {
+          const confirm = await vscode.window.showWarningMessage(
+            `Apply changes to ${kind}/${name}?`,
+            { modal: true },
+            "Apply",
+          );
+          if (confirm !== "Apply") return;
+          try {
+            const result = await runner.applyYaml(ctx, msg.yaml as string);
+            vscode.window.showInformationMessage(`Kubiq: ${result.trim()}`);
+            panel.webview.postMessage({ type: "applySuccess" });
+          } catch (e) {
+            vscode.window.showErrorMessage(`Kubiq: apply failed — ${(e as Error).message}`);
+          }
+        }
+      });
     } catch (e) {
       vscode.window.showErrorMessage(
         `Kubiq: failed to load ${kind}/${name}: ${(e as Error).message}`,
@@ -439,7 +414,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);
 pre{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
     padding:14px;font-family:var(--font-mono);font-size:11.5px;line-height:1.7;
     white-space:pre-wrap;word-break:break-word;color:var(--text);}
-.copy-yaml-btn{position:fixed;top:90px;right:20px;background:var(--bg3);
+.yaml-toolbar{display:flex;gap:6px;margin-bottom:8px;justify-content:flex-end;}
+.yaml-action-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--dim);
+    border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;font-family:var(--font-ui);
+    transition:color .15s,border-color .15s;}
+.yaml-action-btn:hover{color:var(--accent);border-color:var(--accent);}
+.apply-btn{color:var(--accent);border-color:var(--accent);}
+.apply-btn:hover{background:#0d2e22;}
+.cancel-btn:hover{color:var(--err);border-color:var(--err);}
+.yaml-view{white-space:pre-wrap;}
+.yaml-editor{width:100%;min-height:400px;background:var(--bg2);border:1px solid var(--accent);
+    border-radius:4px;padding:14px;font-family:var(--font-mono);font-size:11.5px;
+    line-height:1.7;color:var(--text);resize:vertical;outline:none;
+    white-space:pre;overflow:auto;tab-size:2;}
+.copy-yaml-btn{background:var(--bg3);
     border:1px solid var(--border2);color:var(--dim);border-radius:4px;
     padding:5px 10px;cursor:pointer;font-size:11px;font-family:var(--font-ui);
     display:flex;align-items:center;gap:4px;transition:color .15s,border-color .15s;z-index:5;}
@@ -465,12 +453,19 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
 ${
   yaml
     ? `<div class="panel" id="tab-yaml">
-  <button class="copy-yaml-btn" id="copyYaml" title="Copy YAML to clipboard">📋 Copy YAML</button>
-  <pre id="yamlContent">${esc(yaml)}</pre>
+  <div class="yaml-toolbar" id="yamlToolbar">
+    <button class="copy-yaml-btn" id="copyYaml" title="Copy YAML">📋 Copy</button>
+    <button class="yaml-action-btn" id="editYamlBtn" title="Edit YAML">✎ Edit</button>
+    <button class="yaml-action-btn apply-btn" id="applyYamlBtn" style="display:none" title="Apply changes">Apply</button>
+    <button class="yaml-action-btn cancel-btn" id="cancelYamlBtn" style="display:none" title="Cancel editing">Cancel</button>
+  </div>
+  <pre id="yamlView" class="yaml-view">${esc(yaml)}</pre>
+  <textarea id="yamlEditor" class="yaml-editor" style="display:none" spellcheck="false">${esc(yaml)}</textarea>
 </div>`
     : ""
 }
 <script>
+var vscode = acquireVsCodeApi();
 document.querySelectorAll('.tab').forEach(function(btn){
   btn.addEventListener('click',function(){
     document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active');});
@@ -479,12 +474,15 @@ document.querySelectorAll('.tab').forEach(function(btn){
     document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
   });
 });
-function copyText(btnId, preId) {
+
+// Copy buttons
+function copyText(btnId, sourceId) {
   var btn = document.getElementById(btnId);
-  var pre = document.getElementById(preId);
-  if (!btn || !pre) return;
+  if (!btn) return;
   btn.addEventListener('click', function() {
-    navigator.clipboard.writeText(pre.textContent || '').then(function() {
+    var el = document.getElementById(sourceId);
+    var text = el ? (el.value || el.textContent || '') : '';
+    navigator.clipboard.writeText(text).then(function() {
       btn.textContent = '✓ Copied';
       btn.classList.add('copied');
       setTimeout(function() { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 1500);
@@ -492,7 +490,48 @@ function copyText(btnId, preId) {
   });
 }
 copyText('copyDescribe', 'describeContent');
-copyText('copyYaml', 'yamlContent');
+copyText('copyYaml', 'yamlView');
+
+// YAML Edit / Apply / Cancel
+var yamlView = document.getElementById('yamlView');
+var yamlEditor = document.getElementById('yamlEditor');
+var editBtn = document.getElementById('editYamlBtn');
+var applyBtn = document.getElementById('applyYamlBtn');
+var cancelBtn = document.getElementById('cancelYamlBtn');
+
+if (editBtn) {
+  editBtn.addEventListener('click', function() {
+    yamlEditor.value = yamlView.textContent || '';
+    yamlView.style.display = 'none';
+    yamlEditor.style.display = 'block';
+    editBtn.style.display = 'none';
+    applyBtn.style.display = '';
+    cancelBtn.style.display = '';
+    yamlEditor.focus();
+  });
+}
+if (cancelBtn) {
+  cancelBtn.addEventListener('click', function() {
+    yamlEditor.style.display = 'none';
+    yamlView.style.display = 'block';
+    editBtn.style.display = '';
+    applyBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+  });
+}
+if (applyBtn) {
+  applyBtn.addEventListener('click', function() {
+    vscode.postMessage({ type: 'applyYaml', yaml: yamlEditor.value });
+  });
+}
+
+// Handle apply result
+window.addEventListener('message', function(e) {
+  if (e.data.type === 'applySuccess') {
+    yamlView.textContent = yamlEditor.value;
+    cancelBtn.click();
+  }
+});
 </script>
 </body></html>`;
 }
