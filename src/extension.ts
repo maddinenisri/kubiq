@@ -5,6 +5,7 @@ import { ClaudeSession } from "./claude/claudeSession";
 import { SessionStore } from "./claude/sessionStore";
 import { runner } from "./kubectl/runner";
 import { crashAnalyzer } from "./pods/crashAnalyzer";
+import { validateResponse } from "./ai/responseValidator";
 
 const activeSessions = new Map<string, ClaudeSession>();
 let sessionStore: SessionStore;
@@ -98,6 +99,10 @@ async function runDiagnosis(
 
     panel.renderSnapshot(snapshot as Parameters<typeof panel.renderSnapshot>[0]);
 
+    // Check if AI is enabled
+    const aiEnabled = vscode.workspace.getConfiguration("kubiq.ai").get("enabled", true);
+    if (!aiEnabled) return;
+
     const session = createSession(podKey);
     wireSession(session, panel, podKey);
     session.send(
@@ -143,7 +148,20 @@ function wireSession(session: ClaudeSession, panel: PodPanel, podKey: string) {
   });
   session.on("text_delta", (t) => panel.sendTextDelta(t));
   session.on("turn_complete", (full) => {
-    panel.sendTurnComplete(full);
+    // Post-hook: validate response for destructive commands
+    const flagDestructive = vscode.workspace
+      .getConfiguration("kubiq.guardrails")
+      .get("flagDestructiveCommands", true);
+    const validation = validateResponse(full, flagDestructive);
+    if (validation.flaggedCommands.length > 0) {
+      const dangerCount = validation.flaggedCommands.filter((f) => f.severity === "danger").length;
+      if (dangerCount > 0) {
+        vscode.window.showWarningMessage(
+          `Kubiq: AI response contains ${dangerCount} destructive command(s) — flagged with warnings`,
+        );
+      }
+    }
+    panel.sendTurnComplete(full, validation.flaggedCommands);
     sessionStore.addMessage(podKey, { role: "assistant", content: full, timestamp: Date.now() });
   });
   session.on("error", (msg) => panel.sendError(msg));

@@ -94,8 +94,11 @@ export class PodPanel {
     this.post({ type: "text_delta", text });
   }
 
-  sendTurnComplete(fullText: string) {
-    this.post({ type: "turn_complete", fullText });
+  sendTurnComplete(
+    fullText: string,
+    flaggedCommands?: Array<{ command: string; severity: string; reason: string }>,
+  ) {
+    this.post({ type: "turn_complete", fullText, flaggedCommands });
   }
 
   sendError(message: string) {
@@ -343,9 +346,20 @@ ${styles()}
     scrollToBottom();
   }
 
-  function finaliseStreamingBubble(fullText) {
+  function finaliseStreamingBubble(fullText, flaggedCommands) {
     if (streamingEl) {
-      streamingEl.innerHTML = renderMarkdown(fullText);
+      var html = renderMarkdown(fullText);
+      // Annotate flagged commands with safety badges
+      if (flaggedCommands && flaggedCommands.length > 0) {
+        for (var i = 0; i < flaggedCommands.length; i++) {
+          var f = flaggedCommands[i];
+          var escaped = esc(f.command);
+          var cls = f.severity === 'danger' ? 'cmd-danger' : 'cmd-warning';
+          var label = f.severity === 'danger' ? '⚠ DESTRUCTIVE' : 'ℹ REVIEW';
+          html = html.replace(escaped, '<span class="' + cls + '">' + label + ': ' + escaped + '</span>');
+        }
+      }
+      streamingEl.innerHTML = html;
       streamingEl.id = '';
       streamingEl = null;
     }
@@ -494,7 +508,7 @@ ${styles()}
     switch (msg.type) {
       case 'thinking':      appendThinkingBubble();             break;
       case 'text_delta':    appendTextDelta(msg.text);          break;
-      case 'turn_complete': finaliseStreamingBubble(msg.fullText); break;
+      case 'turn_complete': finaliseStreamingBubble(msg.fullText, msg.flaggedCommands); break;
       case 'error':         appendError(msg.message);           break;
       case 'chat_history':  appendHistoryMessages(msg.messages); break;
       case 'snapshot':      renderSnapshot(msg.snapshot);       break;
@@ -597,6 +611,12 @@ function styles(): string {
                                    border-radius:4px; font-size:11.5px; overflow-x:auto;
                                    color:#a0d8c8; margin:0; border:1px solid var(--border); }
     .ai-bubble strong { color:#e8ecf8; }
+
+    /* COMMAND SAFETY BADGES */
+    .cmd-danger { display:inline; background:#2e1010; border:1px solid var(--err); color:var(--err);
+                   padding:1px 6px; border-radius:3px; font-size:11px; }
+    .cmd-warning { display:inline; background:#2e2210; border:1px solid var(--warn); color:var(--warn);
+                    padding:1px 6px; border-radius:3px; font-size:11px; }
 
     /* CHAT TOOLBAR */
     .chat-toolbar { display:flex; justify-content:flex-end; padding:4px 10px; background:var(--bg2);

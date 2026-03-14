@@ -91,6 +91,64 @@
           "type": "number",
           "default": 500,
           "description": "Log lines to fetch per container"
+        },
+        "kubiq.ai.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI-powered diagnostics. Disable for offline/air-gapped mode. Crash pattern detection still works locally.",
+          "order": 10
+        },
+        "kubiq.ai.customInstructions": {
+          "type": "string",
+          "default": "",
+          "editPresentation": "multilineText",
+          "description": "Additional instructions appended to the AI system prompt. Examples: 'Focus on Java Spring Boot errors', 'Always suggest Helm chart fixes', 'Respond in Japanese'.",
+          "order": 11
+        },
+        "kubiq.ai.promptPreset": {
+          "type": "string",
+          "enum": [
+            "default",
+            "sre-oncall",
+            "developer",
+            "security-audit"
+          ],
+          "enumItemLabels": [
+            "General K8s SRE",
+            "SRE On-Call (incident focus)",
+            "Developer (app-level focus)",
+            "Security Audit (CVE/RBAC focus)"
+          ],
+          "default": "default",
+          "description": "AI personality preset. Custom instructions are appended on top.",
+          "order": 12
+        },
+        "kubiq.guardrails.sanitizeSecrets": {
+          "type": "boolean",
+          "default": true,
+          "description": "Strip detected secrets, tokens, and credentials from pod data before sending to AI.",
+          "order": 20
+        },
+        "kubiq.guardrails.sanitizeEnvVars": {
+          "type": "boolean",
+          "default": true,
+          "description": "Redact environment variable values from pod describe output before sending to AI.",
+          "order": 21
+        },
+        "kubiq.guardrails.redactPatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional regex patterns to redact from data sent to AI. Each match is replaced with [REDACTED].",
+          "order": 22
+        },
+        "kubiq.guardrails.flagDestructiveCommands": {
+          "type": "boolean",
+          "default": true,
+          "description": "Flag destructive kubectl commands (delete, drain, scale-to-zero) in AI responses with a warning banner.",
+          "order": 30
         }
       }
     }

@@ -1,4 +1,6 @@
+import * as vscode from "vscode";
 import type { PodSnapshot } from "../kubectl/runner";
+import { sanitize } from "../ai/sanitizer";
 
 // Known crash patterns for instant local pre-classification (no CLI involved)
 const CRASH_PATTERNS: Array<{
@@ -26,6 +28,17 @@ const CRASH_PATTERNS: Array<{
   { pattern: /MountVolume.SetUp failed/i, label: "Volume Mount Failure", severity: "critical" },
 ];
 
+const PROMPT_PRESETS: Record<string, string> = {
+  default:
+    "You are an expert Kubernetes SRE acting as an interactive assistant inside a VS Code pod diagnostic panel.",
+  "sre-oncall":
+    "You are an SRE on-call responding to a production incident. Be concise and action-oriented. Prioritize immediate mitigation over root cause. Suggest rollback if the pod was recently deployed.",
+  developer:
+    "You are a senior developer helping debug an application running in Kubernetes. Focus on application-level issues: stack traces, configuration errors, dependency failures, and code-level fixes rather than infrastructure.",
+  "security-audit":
+    "You are a Kubernetes security engineer performing an audit. Focus on security misconfigurations: overly permissive RBAC, missing network policies, containers running as root, secrets exposure, and CVEs in container images.",
+};
+
 export class CrashAnalyzer {
   quickScan(
     snapshot: PodSnapshot,
@@ -42,6 +55,88 @@ export class CrashAnalyzer {
   }
 
   buildInitialPrompt(snapshot: PodSnapshot): string {
+    const config = vscode.workspace.getConfiguration("kubiq");
+    const guardrails = vscode.workspace.getConfiguration("kubiq.guardrails");
+
+    // Assemble raw pod data
+    const rawData = this.buildRawPodData(snapshot);
+
+    // Pre-hook: sanitize secrets
+    const sanitizeResult = sanitize(rawData, {
+      stripSecrets: guardrails.get("sanitizeSecrets", true),
+      stripEnvVarValues: guardrails.get("sanitizeEnvVars", true),
+      customPatterns: guardrails.get<string[]>("redactPatterns", []),
+    });
+
+    if (sanitizeResult.totalRedacted > 0) {
+      console.log(
+        `Kubiq: sanitized ${sanitizeResult.totalRedacted} sensitive items from pod data`,
+        sanitizeResult.redactions,
+      );
+    }
+
+    // Build system prompt from preset + custom instructions + workspace rules
+    const systemPrompt = this.buildSystemPrompt(config);
+
+    return `${systemPrompt}
+
+${sanitizeResult.sanitized}
+
+---
+
+Instructions:
+1. Give a concise 2-3 sentence summary of the pod's health and most likely issue.
+2. If there is a clear problem, state the root cause and one immediate fix.
+3. Keep this opening response SHORT — 4-6 sentences maximum.
+4. End with: "What would you like to investigate further?"
+5. You have the full pod context above for all follow-up questions in this session.`;
+  }
+
+  private buildSystemPrompt(config: vscode.WorkspaceConfiguration): string {
+    // 1. Base preset
+    const preset = config.get<string>("ai.promptPreset", "default");
+    let prompt = PROMPT_PRESETS[preset] ?? PROMPT_PRESETS["default"];
+
+    // 2. Custom instructions from settings
+    const customInstructions = config.get<string>("ai.customInstructions", "");
+    if (customInstructions.trim()) {
+      prompt += `\n\nAdditional instructions:\n${customInstructions}`;
+    }
+
+    // 3. Workspace rules from .kubiq/rules/*.md (loaded once, sent as system context)
+    const workspaceRules = this.loadWorkspaceRules();
+    if (workspaceRules) {
+      prompt += `\n\nProject-specific knowledge base (from .kubiq/rules/):\n${workspaceRules}`;
+    }
+
+    return prompt;
+  }
+
+  private loadWorkspaceRules(): string {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders) return "";
+
+    const fs = require("fs");
+    const path = require("path");
+    const rulesDir = path.join(workspaceFolders[0].uri.fsPath, ".kubiq", "rules");
+
+    try {
+      if (!fs.existsSync(rulesDir)) return "";
+      const files: string[] = fs.readdirSync(rulesDir).filter((f: string) => f.endsWith(".md"));
+      if (files.length === 0) return "";
+
+      return files
+        .map((f: string) => {
+          const content = fs.readFileSync(path.join(rulesDir, f), "utf8");
+          return `### ${f.replace(".md", "")}\n${content.trim()}`;
+        })
+        .join("\n\n");
+    } catch {
+      return "";
+    }
+  }
+
+  private buildRawPodData(snapshot: PodSnapshot): string {
     const truncate = (s: string, maxChars = 3000) =>
       s.length > maxChars ? `...[truncated]\n${s.slice(-maxChars)}` : s;
 
@@ -62,9 +157,7 @@ export class CrashAnalyzer {
       .map(([name, log]) => `=== Previous: ${name} ===\n${truncate(log, 2000)}`)
       .join("\n\n");
 
-    return `You are an expert Kubernetes SRE acting as an interactive assistant inside a VS Code pod diagnostic panel.
-
-## Pod Snapshot
+    return `## Pod Snapshot
 Name: ${snapshot.name}  Namespace: ${snapshot.namespace}
 Context: ${snapshot.context}  Phase: ${snapshot.phase}
 Node: ${snapshot.nodeName}  Started: ${snapshot.startTime}
@@ -81,16 +174,7 @@ ${truncate(snapshot.events, 2000)}
 ## Current Logs
 ${logsSummary || "(no logs available)"}
 
-${prevLogsSummary ? `## Previous Container Logs\n${prevLogsSummary}` : ""}
-
----
-
-Instructions:
-1. Give a concise 2-3 sentence summary of the pod's health and most likely issue.
-2. If there is a clear problem, state the root cause and one immediate fix.
-3. Keep this opening response SHORT — 4-6 sentences maximum.
-4. End with: "What would you like to investigate further?"
-5. You have the full pod context above for all follow-up questions in this session.`;
+${prevLogsSummary ? `## Previous Container Logs\n${prevLogsSummary}` : ""}`;
   }
 }
 
