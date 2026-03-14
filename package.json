@@ -88,6 +88,11 @@
           "group": "navigation"
         },
         {
+          "command": "kubiq.openTopology",
+          "when": "view == kubiq.dashboard",
+          "group": "navigation"
+        },
+        {
           "command": "kubiq.openSettings",
           "when": "view == kubiq.dashboard",
           "group": "navigation"
