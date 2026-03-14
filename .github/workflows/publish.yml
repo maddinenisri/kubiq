@@ -1,0 +1,32 @@
+name: Publish to VS Code Marketplace
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install extension dependencies
+        run: npm install
+
+      - name: Install webview dependencies
+        run: cd webview-ui && npm install
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run compile
+
+      - name: Publish
+        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
