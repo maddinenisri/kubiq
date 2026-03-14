@@ -146,19 +146,26 @@ ${styles()}
   <div class="chat-messages" id="chatMessages">
     <!-- history + streaming messages rendered here -->
   </div>
-  <div class="chat-input-row">
-    <textarea
-      id="chatInput"
-      class="chat-input"
-      placeholder="Ask about this pod…"
-      rows="2"
-      disabled
-    ></textarea>
-    <button id="sendBtn" class="send-btn" disabled title="Send (Enter)">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-        <path d="M1.5 1l13 7-13 7V9.5l9-1.5-9-1.5V1z"/>
-      </svg>
-    </button>
+  <div class="chat-input-footer">
+    <div class="chat-input-row">
+      <textarea
+        id="chatInput"
+        class="chat-input"
+        placeholder="Ask about this pod…"
+        rows="1"
+        disabled
+      ></textarea>
+      <button id="sendBtn" class="send-btn" disabled title="Send">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1.5 1l13 7-13 7V9.5l9-1.5-9-1.5V1z"/>
+        </svg>
+        <span class="send-spinner"></span>
+      </button>
+    </div>
+    <div class="chat-hint">
+      <span><kbd>Enter</kbd> send</span>
+      <span><kbd>Shift+Enter</kbd> newline</span>
+    </div>
   </div>
 </section>
 
@@ -215,7 +222,9 @@ ${styles()}
   function enableInput() {
     chatInput.disabled = false;
     sendBtn.disabled   = false;
+    sendBtn.classList.remove('loading');
     chatInput.focus();
+    autoResize();
     streaming = false;
     streamingEl = null;
   }
@@ -223,14 +232,22 @@ ${styles()}
   function disableInput() {
     chatInput.disabled = true;
     sendBtn.disabled   = true;
+    sendBtn.classList.add('loading');
     streaming = true;
   }
+
+  function autoResize() {
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+  }
+  chatInput.addEventListener('input', autoResize);
 
   function sendMessage() {
     const text = chatInput.value.trim();
     if (!text || streaming) return;
     appendUserMessage(text);
     chatInput.value = '';
+    autoResize();
     disableInput();
     vscode.postMessage({ type: 'user_message', text });
   }
@@ -529,18 +546,33 @@ function styles(): string {
     @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
 
     /* CHAT INPUT */
-    .chat-input-row { display:flex; gap:8px; padding:10px 14px;
-                       background:var(--bg2); border-top:1px solid var(--border); flex-shrink:0; }
+    .chat-input-footer { background:var(--bg2); border-top:1px solid rgba(74,240,200,0.1); flex-shrink:0; }
+    .chat-input-row { display:flex; gap:8px; padding:12px 14px; align-items:flex-end; }
     .chat-input { flex:1; background:var(--bg3); border:1px solid var(--border2); color:var(--text);
-                   border-radius:6px; padding:8px 12px; font-family:var(--font-ui); font-size:13px;
-                   resize:none; outline:none; line-height:1.5; transition:border-color .15s; }
-    .chat-input:focus { border-color:var(--accent); }
+                   border-radius:8px; padding:10px 12px; font-family:var(--font-ui); font-size:13px;
+                   resize:none; outline:none; line-height:1.5; max-height:120px;
+                   transition:border-color .2s, box-shadow .2s; }
+    .chat-input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(74,240,200,0.1); }
     .chat-input:disabled { opacity:.4; cursor:not-allowed; }
-    .send-btn { background:var(--accent2); border:none; color:#fff; width:36px; height:36px;
-                 border-radius:6px; cursor:pointer; display:flex; align-items:center;
-                 justify-content:center; flex-shrink:0; transition:background .15s; align-self:flex-end; }
-    .send-btn:hover:not(:disabled) { background:#4a8be5; }
-    .send-btn:disabled { opacity:.35; cursor:not-allowed; }
+    .send-btn { background:linear-gradient(135deg, #4af0c8 0%, #3a9fab 100%); border:none;
+                 color:#0d0f14; width:36px; height:36px; border-radius:8px; cursor:pointer;
+                 display:flex; align-items:center; justify-content:center; flex-shrink:0;
+                 transition:all .2s; align-self:flex-end; }
+    .send-btn:hover:not(:disabled) { background:linear-gradient(135deg, #5fffd4 0%, #4aafbc 100%);
+                                       box-shadow:0 4px 12px rgba(74,240,200,0.25); }
+    .send-btn:active:not(:disabled) { transform:scale(0.95); }
+    .send-btn:disabled { opacity:.3; cursor:not-allowed; }
+    .send-btn.loading { background:rgba(74,240,200,0.15); pointer-events:none; }
+    .send-btn.loading svg { display:none; }
+    .send-spinner { display:none; width:16px; height:16px; border:2px solid rgba(74,240,200,0.3);
+                     border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+    .send-btn.loading .send-spinner { display:inline-block; }
+    @keyframes spin { to{transform:rotate(360deg);} }
+    .chat-hint { display:flex; justify-content:flex-end; padding:0 14px 6px; gap:6px;
+                  font-size:10px; color:rgba(200,207,224,0.25); }
+    .chat-hint kbd { background:rgba(74,240,200,0.06); border:1px solid rgba(74,240,200,0.12);
+                      border-radius:3px; padding:1px 4px; font-family:var(--font-mono); font-size:9px;
+                      color:rgba(74,240,200,0.4); }
 
     /* ── CONTAINERS ────────────────────────────────────────────────────────── */
     #tab-containers { overflow-y:auto; padding:16px; }
