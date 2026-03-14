@@ -7,6 +7,7 @@ import { runner } from "./services/KubectlService";
 import { crashAnalyzer } from "./pods/crashAnalyzer";
 import { validateResponse } from "./ai/responseValidator";
 import { invalidateSkillsCache } from "./ai/skillsLoader";
+import { getWebviewHtml } from "./utils/html";
 
 const activeSessions = new Map<string, ClaudeSession>();
 let sessionStore: SessionStore;
@@ -60,7 +61,79 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
   );
 
+  // ── Settings panel ──────────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("kubiq.openSettings", () => {
+      openSettingsPanel(context);
+    }),
+  );
+
   console.log("Kubiq: activated (standalone)");
+}
+
+function openSettingsPanel(context: vscode.ExtensionContext) {
+  const panel = vscode.window.createWebviewPanel(
+    "kubiqSettings",
+    "⬡ Kubiq Settings",
+    vscode.ViewColumn.One,
+    {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "out")],
+    },
+  );
+
+  panel.webview.html = getWebviewHtml(panel.webview, context.extensionUri, "settings");
+
+  panel.webview.onDidReceiveMessage(async (msg: Record<string, unknown>) => {
+    if (msg.type === "getSettings") {
+      const config = vscode.workspace.getConfiguration("kubiq");
+      const skills = (await import("./ai/skillsLoader")).getSkillNames(context.extensionPath);
+
+      // Check for workspace rules
+      let workspaceRules: string[] = [];
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (workspaceFolders) {
+        const fs = require("fs");
+        const path = require("path");
+        const rulesDir = path.join(workspaceFolders[0].uri.fsPath, ".kubiq", "rules");
+        try {
+          if (fs.existsSync(rulesDir)) {
+            workspaceRules = fs
+              .readdirSync(rulesDir)
+              .filter((f: string) => f.endsWith(".md"))
+              .map((f: string) => f.replace(".md", ""));
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      panel.webview.postMessage({
+        type: "settingsData",
+        settings: {
+          aiEnabled: config.get("ai.enabled", true),
+          promptPreset: config.get("ai.promptPreset", "default"),
+          customInstructions: config.get("ai.customInstructions", ""),
+          sanitizeSecrets: config.get("guardrails.sanitizeSecrets", true),
+          sanitizeEnvVars: config.get("guardrails.sanitizeEnvVars", true),
+          redactPatterns: config.get("guardrails.redactPatterns", []),
+          flagDestructiveCommands: config.get("guardrails.flagDestructiveCommands", true),
+          logTailLines: config.get("logTailLines", 500),
+          clusterProfiles: config.get("clusterProfiles", {}),
+          loadedSkills: skills,
+          workspaceRules,
+        },
+      });
+    }
+
+    if (msg.type === "updateSetting") {
+      const key = msg.key as string;
+      const value = msg.value;
+      const config = vscode.workspace.getConfiguration();
+      await config.update(key, value, vscode.ConfigurationTarget.Global);
+    }
+  });
 }
 
 // ── Diagnosis flow ───────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ export default defineConfig({
         sidebar: resolve(__dirname, "src", "sidebar.tsx"),
         panel: resolve(__dirname, "src", "panel.tsx"),
         resource: resolve(__dirname, "src", "resource.tsx"),
+        settings: resolve(__dirname, "src", "settings.tsx"),
       },
       output: {
         entryFileNames: "assets/[name].js",

@@ -32,7 +32,7 @@ export function esc(s: string): string {
 export function getWebviewHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
-  entryPoint: "sidebar" | "panel" | "resource",
+  entryPoint: "sidebar" | "panel" | "resource" | "settings",
   dataAttrs?: Record<string, string>,
 ): string {
   const nonce = getNonce();

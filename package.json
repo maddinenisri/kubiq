@@ -68,12 +68,22 @@
         "command": "kubiq.refresh",
         "title": "Kubiq: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "kubiq.openSettings",
+        "title": "Kubiq: Open Settings",
+        "icon": "$(gear)"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "kubiq.refresh",
+          "when": "view == kubiq.dashboard",
+          "group": "navigation"
+        },
+        {
+          "command": "kubiq.openSettings",
           "when": "view == kubiq.dashboard",
           "group": "navigation"
         }
