@@ -105,6 +105,15 @@ export class PodPanel {
     this.post({ type: "error", message });
   }
 
+  sendContextInfo(ctx: {
+    preset: string;
+    skills: string[];
+    sanitization: boolean;
+    customInstructions: boolean;
+  }) {
+    this.post({ type: "context_info", ...ctx });
+  }
+
   /** Sends pod snapshot data to populate Containers / Logs / Events / Describe tabs */
   renderSnapshot(snapshot: PodSnapshot) {
     this.snapshotData = snapshot;
@@ -176,6 +185,7 @@ ${styles()}
       New Chat
     </button>
   </div>
+  <div class="context-bar" id="contextBar" style="display:none"></div>
   <div class="chat-messages" id="chatMessages">
     <!-- history + streaming messages rendered here -->
   </div>
@@ -500,6 +510,28 @@ ${styles()}
     document.getElementById('describeBlock').textContent = s.describe || '(no output)';
   }
 
+  // ── Context info bar ─────────────────────────────────────────────────────
+  function renderContextInfo(ctx) {
+    var bar = document.getElementById('contextBar');
+    if (!ctx || ctx.preset === 'disabled') {
+      bar.innerHTML = '<span class="ctx-label">AI:</span><span class="ctx-chip off">disabled</span>';
+      bar.style.display = 'flex';
+      return;
+    }
+    var html = '<span class="ctx-label">AI:</span>';
+    html += '<span class="ctx-chip">' + esc(ctx.preset) + '</span>';
+    if (ctx.sanitization) html += '<span class="ctx-chip">🛡 sanitized</span>';
+    if (ctx.customInstructions) html += '<span class="ctx-chip warn">custom prompt</span>';
+    if (ctx.skills && ctx.skills.length > 0) {
+      html += '<span class="ctx-label" style="margin-left:4px">skills:</span>';
+      for (var i = 0; i < ctx.skills.length; i++) {
+        html += '<span class="ctx-chip">' + esc(ctx.skills[i]) + '</span>';
+      }
+    }
+    bar.style.display = 'flex';
+    bar.innerHTML = html;
+  }
+
   // ── Message bus ──────────────────────────────────────────────────────────
 
   window.addEventListener('message', event => {
@@ -512,6 +544,7 @@ ${styles()}
       case 'error':         appendError(msg.message);           break;
       case 'chat_history':  appendHistoryMessages(msg.messages); break;
       case 'snapshot':      renderSnapshot(msg.snapshot);       break;
+      case 'context_info':  renderContextInfo(msg);              break;
     }
   });
 
@@ -611,6 +644,15 @@ function styles(): string {
                                    border-radius:4px; font-size:11.5px; overflow-x:auto;
                                    color:#a0d8c8; margin:0; border:1px solid var(--border); }
     .ai-bubble strong { color:#e8ecf8; }
+
+    /* CONTEXT BAR */
+    .context-bar { display:flex; flex-wrap:wrap; gap:4px; padding:4px 10px; background:var(--bg);
+                    border-bottom:1px solid var(--border); flex-shrink:0; font-size:9px; align-items:center; }
+    .ctx-label { color:var(--dim); margin-right:2px; }
+    .ctx-chip { background:rgba(74,240,200,0.08); border:1px solid rgba(74,240,200,0.15);
+                 color:rgba(74,240,200,0.6); padding:1px 6px; border-radius:10px; font-family:var(--font-mono); }
+    .ctx-chip.warn { border-color:rgba(240,168,74,0.3); color:rgba(240,168,74,0.6); }
+    .ctx-chip.off { border-color:var(--border2); color:var(--dim); }
 
     /* COMMAND SAFETY BADGES */
     .cmd-danger { display:inline; background:#2e1010; border:1px solid var(--err); color:var(--err);

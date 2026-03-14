@@ -59,6 +59,33 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           this.diagnoseHandler?.(pod, ns, ctx);
           break;
         }
+
+        case "restartPod": {
+          const pod = msg.pod as string;
+          const ns = msg.namespace as string;
+          const ctx = msg.context as string;
+          await this.handleRestartPod(view, pod, ns, ctx);
+          break;
+        }
+
+        case "portForward": {
+          const pod = msg.pod as string;
+          const ns = msg.namespace as string;
+          const ctx = msg.context as string;
+          const localPort = msg.localPort as string;
+          const remotePort = msg.remotePort as string;
+          this.handlePortForward(pod, ns, ctx, localPort, remotePort);
+          break;
+        }
+
+        case "scaleDeployment": {
+          const name = msg.name as string;
+          const ns = msg.namespace as string;
+          const ctx = msg.context as string;
+          const replicas = msg.replicas as number;
+          await this.handleScaleDeployment(view, name, ns, ctx, replicas);
+          break;
+        }
       }
     });
   }
@@ -160,6 +187,71 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     } catch (e) {
       this.sendError(view, `Failed to fetch ${resource}: ${(e as Error).message}`);
     }
+  }
+
+  private async handleRestartPod(view: vscode.WebviewView, pod: string, ns: string, ctx: string) {
+    const confirm = await vscode.window.showWarningMessage(
+      `Restart pod ${pod}? This will delete and let the deployment recreate it.`,
+      { modal: true },
+      "Restart",
+    );
+    if (confirm !== "Restart") return;
+
+    try {
+      await runner.deletePod(ctx, ns, pod);
+      vscode.window.showInformationMessage(`Kubiq: pod ${pod} restarting`);
+      // Refresh after a short delay to show new pod
+      setTimeout(() => view.webview.postMessage({ type: "refresh" }), 2000);
+    } catch (e) {
+      this.sendError(view, `Failed to restart pod: ${(e as Error).message}`);
+    }
+  }
+
+  private async handleScaleDeployment(
+    view: vscode.WebviewView,
+    name: string,
+    ns: string,
+    ctx: string,
+    replicas: number,
+  ) {
+    const confirm = await vscode.window.showWarningMessage(
+      `Scale deployment ${name} to ${replicas} replicas?`,
+      { modal: true },
+      "Scale",
+    );
+    if (confirm !== "Scale") return;
+
+    try {
+      await runner.scaleDeployment(ctx, ns, name, replicas);
+      vscode.window.showInformationMessage(`Kubiq: ${name} scaled to ${replicas} replicas`);
+      setTimeout(() => view.webview.postMessage({ type: "refresh" }), 2000);
+    } catch (e) {
+      this.sendError(view, `Failed to scale: ${(e as Error).message}`);
+    }
+  }
+
+  private handlePortForward(
+    pod: string,
+    ns: string,
+    ctx: string,
+    localPort: string,
+    remotePort: string,
+  ) {
+    const terminal = vscode.window.createTerminal({
+      name: `⇄ ${pod} ${localPort}:${remotePort}`,
+      shellPath: "kubectl",
+      shellArgs: [
+        "port-forward",
+        pod,
+        `${localPort}:${remotePort}`,
+        `--namespace=${ns}`,
+        `--context=${ctx}`,
+      ],
+    });
+    terminal.show();
+    vscode.window.showInformationMessage(
+      `Kubiq: port-forwarding ${pod} ${localPort}→${remotePort}`,
+    );
   }
 
   private sendError(view: vscode.WebviewView, message: string) {

@@ -51,10 +51,21 @@ export function loadSkills(extensionPath: string): string {
     .map(([name, content]) => `### ${name}\n${content}`)
     .join("\n\n");
 
-  console.log(`Kubiq: loaded ${skills.size} knowledge base skills`);
+  cachedSkillNames = Array.from(skills.keys());
+  console.log(`Kubiq: loaded ${skills.size} knowledge base skills: ${cachedSkillNames.join(", ")}`);
   return cachedSkills;
 }
 
+/** Returns list of loaded skill names (for UI display) */
+export function getSkillNames(extensionPath: string): string[] {
+  // Ensure skills are loaded
+  loadSkills(extensionPath);
+  return cachedSkillNames;
+}
+
+let cachedSkillNames: string[] = [];
+
 export function invalidateSkillsCache(): void {
   cachedSkills = null;
+  cachedSkillNames = [];
 }

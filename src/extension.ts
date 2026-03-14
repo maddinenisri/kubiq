@@ -102,7 +102,19 @@ async function runDiagnosis(
 
     // Check if AI is enabled
     const aiEnabled = vscode.workspace.getConfiguration("kubiq.ai").get("enabled", true);
-    if (!aiEnabled) return;
+    if (!aiEnabled) {
+      panel.sendContextInfo({
+        preset: "disabled",
+        skills: [],
+        sanitization: false,
+        customInstructions: false,
+      });
+      return;
+    }
+
+    // Send context info to chat UI
+    const ctx = crashAnalyzer.getPromptContext();
+    panel.sendContextInfo(ctx);
 
     const session = createSession(podKey);
     wireSession(session, panel, podKey);

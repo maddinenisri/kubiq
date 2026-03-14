@@ -329,6 +329,40 @@ export class KubectlRunner {
       .reverse(); // newest first
   }
 
+  // ── Pod actions ──────────────────────────────────────────────────────────
+
+  async deletePod(context: string, namespace: string, name: string): Promise<void> {
+    await this.run(
+      [
+        "delete",
+        "pod",
+        name,
+        `--namespace=${namespace}`,
+        `--context=${context}`,
+        "--grace-period=30",
+      ],
+      context,
+    );
+  }
+
+  async scaleDeployment(
+    context: string,
+    namespace: string,
+    name: string,
+    replicas: number,
+  ): Promise<void> {
+    await this.run(
+      [
+        "scale",
+        `deployment/${name}`,
+        `--replicas=${replicas}`,
+        `--namespace=${namespace}`,
+        `--context=${context}`,
+      ],
+      context,
+    );
+  }
+
   // ── Pod deep fetch (for diagnosis panel) ──────────────────────────────────
 
   async getPodSnapshot(name: string, namespace: string, context: string): Promise<PodSnapshot> {

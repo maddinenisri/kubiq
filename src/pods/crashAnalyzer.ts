@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import type { PodSnapshot } from "../kubectl/runner";
 import { sanitize } from "../ai/sanitizer";
-import { loadSkills } from "../ai/skillsLoader";
+import { loadSkills, getSkillNames } from "../ai/skillsLoader";
 
 // Known crash patterns for instant local pre-classification (no CLI involved)
 const CRASH_PATTERNS: Array<{
@@ -59,6 +59,23 @@ export class CrashAnalyzer {
 
   setExtensionPath(p: string) {
     this.extensionPath = p;
+  }
+
+  /** Returns metadata about what's being sent to the LLM */
+  getPromptContext(): {
+    preset: string;
+    skills: string[];
+    sanitization: boolean;
+    customInstructions: boolean;
+  } {
+    const config = vscode.workspace.getConfiguration("kubiq");
+    const guardrails = vscode.workspace.getConfiguration("kubiq.guardrails");
+    return {
+      preset: config.get<string>("ai.promptPreset", "default"),
+      skills: getSkillNames(this.extensionPath),
+      sanitization: guardrails.get("sanitizeSecrets", true),
+      customInstructions: !!config.get<string>("ai.customInstructions", "").trim(),
+    };
   }
 
   buildInitialPrompt(snapshot: PodSnapshot): string {

@@ -464,6 +464,8 @@ tbody tr:hover .row-actions{opacity:1;}
           '<td><div class="row-actions">' +
             '<button class="action-btn diagnose" data-action="diagnose" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '">⬡ AI</button>' +
             '<button class="action-btn" data-action="logs" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '">Logs</button>' +
+            '<button class="action-btn" data-action="restart" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" title="Delete pod (deployment will recreate)">↺</button>' +
+            '<button class="action-btn" data-action="portforward" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" title="Port-forward">⇄</button>' +
           '</div></td>' +
           '</tr>';
       }).join('') + '</tbody></table>';
@@ -582,6 +584,14 @@ tbody tr:hover .row-actions{opacity:1;}
             vscode.postMessage({ type:'diagnose', pod:name, namespace:ns, context:state.currentCtx });
           } else if (action === 'logs') {
             vscode.postMessage({ type:'diagnose', pod:name, namespace:ns, context:state.currentCtx, tab:'logs' });
+          } else if (action === 'restart') {
+            vscode.postMessage({ type:'restartPod', pod:name, namespace:ns, context:state.currentCtx });
+          } else if (action === 'portforward') {
+            var port = prompt('Local port to forward (e.g. 8080):');
+            var targetPort = prompt('Container port (e.g. 8080):', port);
+            if (port && targetPort) {
+              vscode.postMessage({ type:'portForward', pod:name, namespace:ns, context:state.currentCtx, localPort:port, remotePort:targetPort });
+            }
           }
           return;
         }
