@@ -138,6 +138,7 @@ function snapshotForTransfer(s: PodSnapshot) {
     previousLogs: s.previousLogs,
     events: s.events,
     describe: s.describe,
+    yaml: s.yaml,
   };
 }
 
@@ -175,6 +176,7 @@ ${styles()}
   <button class="main-tab" data-tab="logs">Logs</button>
   <button class="main-tab" data-tab="events">Events</button>
   <button class="main-tab" data-tab="describe">Describe</button>
+  <button class="main-tab" data-tab="yaml">YAML</button>
 </nav>
 
 <!-- ── CHAT TAB ─────────────────────────────────────────────────────────── -->
@@ -239,6 +241,17 @@ ${styles()}
 <!-- ── DESCRIBE TAB ─────────────────────────────────────────────────────── -->
 <section id="tab-describe" class="tab-panel">
   <pre class="code-block" id="describeBlock">Loading…</pre>
+</section>
+
+<!-- ── YAML TAB ──────────────────────────────────────────────────────── -->
+<section id="tab-yaml" class="tab-panel">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+    <button class="copy-yaml-btn" id="copyYamlBtn" title="Copy YAML">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"/></svg>
+      Copy YAML
+    </button>
+  </div>
+  <pre class="code-block" id="yamlBlock">Loading…</pre>
 </section>
 
 <script>
@@ -423,19 +436,32 @@ ${styles()}
     return t;
   }
 
-  // Copy button handler (delegated)
+  // Copy button handler (delegated — code blocks + YAML)
   document.addEventListener('click', function(e) {
+    // Code block copy
     var btn = e.target.closest('.copy-btn');
-    if (!btn) return;
-    var targetId = btn.getAttribute('data-target');
-    var pre = document.getElementById(targetId);
-    if (!pre) return;
-    var text = pre.textContent || '';
-    navigator.clipboard.writeText(text).then(function() {
-      btn.classList.add('copied');
-      btn.title = 'Copied!';
-      setTimeout(function() { btn.classList.remove('copied'); btn.title = 'Copy'; }, 1500);
-    });
+    if (btn) {
+      var targetId = btn.getAttribute('data-target');
+      var pre = document.getElementById(targetId);
+      if (!pre) return;
+      navigator.clipboard.writeText(pre.textContent || '').then(function() {
+        btn.classList.add('copied');
+        btn.title = 'Copied!';
+        setTimeout(function() { btn.classList.remove('copied'); btn.title = 'Copy'; }, 1500);
+      });
+      return;
+    }
+    // YAML copy
+    var yamlBtn = e.target.closest('.copy-yaml-btn');
+    if (yamlBtn) {
+      var yamlPre = document.getElementById('yamlBlock');
+      if (!yamlPre) return;
+      navigator.clipboard.writeText(yamlPre.textContent || '').then(function() {
+        yamlBtn.classList.add('copied');
+        yamlBtn.textContent = '✓ Copied';
+        setTimeout(function() { yamlBtn.classList.remove('copied'); yamlBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"/></svg> Copy YAML'; }, 1500);
+      });
+    }
   });
 
     // ── Snapshot rendering ───────────────────────────────────────────────────
@@ -508,6 +534,7 @@ ${styles()}
     // Events + Describe
     document.getElementById('eventsBlock').textContent  = s.events  || '(no events)';
     document.getElementById('describeBlock').textContent = s.describe || '(no output)';
+    document.getElementById('yamlBlock').textContent = s.yaml || '(no YAML available)';
   }
 
   // ── Context info bar ─────────────────────────────────────────────────────
@@ -653,6 +680,14 @@ function styles(): string {
                  color:rgba(74,240,200,0.6); padding:1px 6px; border-radius:10px; font-family:var(--font-mono); }
     .ctx-chip.warn { border-color:rgba(240,168,74,0.3); color:rgba(240,168,74,0.6); }
     .ctx-chip.off { border-color:var(--border2); color:var(--dim); }
+
+    /* COPY YAML BUTTON */
+    .copy-yaml-btn { background:var(--bg3); border:1px solid var(--border2); color:var(--dim);
+                      border-radius:4px; padding:4px 10px; cursor:pointer; font-size:10px;
+                      font-family:var(--font-ui); display:flex; align-items:center; gap:4px;
+                      transition:color .15s,border-color .15s; }
+    .copy-yaml-btn:hover { color:var(--accent); border-color:var(--accent); }
+    .copy-yaml-btn.copied { color:var(--ok); border-color:var(--ok); }
 
     /* COMMAND SAFETY BADGES */
     .cmd-danger { display:inline; background:#2e1010; border:1px solid var(--err); color:var(--err);

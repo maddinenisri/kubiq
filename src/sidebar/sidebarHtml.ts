@@ -500,7 +500,7 @@ tbody tr:hover .row-actions{opacity:1;}
       th('Name', 'name') + th('Namespace', 'namespace') +
       th('Type', 'type') + th('Cluster IP', 'clusterIp') +
       th('External IP', 'externalIp') + th('Ports', 'ports', false) +
-      th('Age', 'age') +
+      th('Age', 'age') + '<th></th>' +
       '</tr></thead><tbody>' +
       rows.map(r => '<tr data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" data-res="services">' +
         '<td class="mono">' + esc(r.name) + '</td>' +
@@ -510,6 +510,9 @@ tbody tr:hover .row-actions{opacity:1;}
         '<td class="mono ' + (r.externalIp !== '—' ? '' : 'dim-text') + '">' + esc(r.externalIp) + '</td>' +
         '<td class="mono dim-text" style="font-size:10px">' + esc(r.ports) + '</td>' +
         '<td class="dim-text">' + esc(r.age) + '</td>' +
+        '<td><div class="row-actions">' +
+          '<button class="action-btn" data-action="edit" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" data-res="services" title="Edit YAML">✎</button>' +
+        '</div></td>' +
         '</tr>'
       ).join('') + '</tbody></table>';
   }
@@ -517,13 +520,16 @@ tbody tr:hover .row-actions{opacity:1;}
   function configmapsTable(rows) {
     return '<table><thead><tr>' +
       th('Name', 'name') + th('Namespace', 'namespace') +
-      th('Keys', 'data') + th('Age', 'age') +
+      th('Keys', 'data') + th('Age', 'age') + '<th></th>' +
       '</tr></thead><tbody>' +
       rows.map(r => '<tr data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" data-res="configmaps">' +
         '<td class="mono">' + esc(r.name) + '</td>' +
         '<td class="mono dim-text">' + esc(r.namespace) + '</td>' +
         '<td class="mono dim-text">' + r.data + '</td>' +
         '<td class="dim-text">' + esc(r.age) + '</td>' +
+        '<td><div class="row-actions">' +
+          '<button class="action-btn" data-action="edit" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" data-res="configmaps" title="Edit YAML">✎</button>' +
+        '</div></td>' +
         '</tr>'
       ).join('') + '</tbody></table>';
   }

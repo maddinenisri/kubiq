@@ -86,6 +86,7 @@ export interface PodSnapshot {
   previousLogs: Record<string, string>;
   events: string;
   describe: string;
+  yaml: string;
 }
 
 // ── Core runner ────────────────────────────────────────────────────────────────
@@ -396,7 +397,7 @@ export class KubectlRunner {
   async getPodSnapshot(name: string, namespace: string, context: string): Promise<PodSnapshot> {
     const tailLines = vscode.workspace.getConfiguration("kubiq").get<number>("logTailLines", 500);
     const base = [`--context=${context}`, `--namespace=${namespace}`];
-    const [podJson, eventsRaw, describeRaw] = await Promise.all([
+    const [podJson, eventsRaw, describeRaw, yamlRaw] = await Promise.all([
       this.run(["get", "pod", name, "-o", "json", ...base], context),
       this.runSafe(
         [
@@ -410,6 +411,7 @@ export class KubectlRunner {
         context,
       ),
       this.runSafe(["describe", "pod", name, ...base], context),
+      this.runSafe(["get", "pod", name, "-o", "yaml", ...base], context),
     ]);
 
     const pod = JSON.parse(podJson) as Record<string, unknown>;
@@ -472,6 +474,7 @@ export class KubectlRunner {
       previousLogs,
       events: eventsRaw,
       describe: describeRaw,
+      yaml: yamlRaw,
     };
   }
 

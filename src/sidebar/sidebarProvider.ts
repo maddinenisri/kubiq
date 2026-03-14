@@ -434,11 +434,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);
      transition:color .15s,border-color .15s;}
 .tab:hover{color:var(--text);}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.panel{display:none;flex:1;overflow:auto;padding:14px;}
+.panel{display:none;flex:1;overflow:auto;padding:14px;position:relative;}
 .panel.active{display:block;}
 pre{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
     padding:14px;font-family:var(--font-mono);font-size:11.5px;line-height:1.7;
     white-space:pre-wrap;word-break:break-word;color:var(--text);}
+.copy-yaml-btn{position:fixed;top:90px;right:20px;background:var(--bg3);
+    border:1px solid var(--border2);color:var(--dim);border-radius:4px;
+    padding:5px 10px;cursor:pointer;font-size:11px;font-family:var(--font-ui);
+    display:flex;align-items:center;gap:4px;transition:color .15s,border-color .15s;z-index:5;}
+.copy-yaml-btn:hover{color:var(--accent);border-color:var(--accent);}
+.copy-yaml-btn.copied{color:#4af0c8;border-color:#4af0c8;}
 </style>
 </head><body>
 <div class="topbar">
@@ -452,8 +458,18 @@ pre{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
   <button class="tab active" data-tab="describe">Describe</button>
   ${yaml ? '<button class="tab" data-tab="yaml">YAML</button>' : ""}
 </div>
-<div class="panel active" id="tab-describe"><pre>${esc(describe)}</pre></div>
-${yaml ? `<div class="panel" id="tab-yaml"><pre>${esc(yaml)}</pre></div>` : ""}
+<div class="panel active" id="tab-describe">
+  <button class="copy-yaml-btn" id="copyDescribe" title="Copy to clipboard">📋 Copy</button>
+  <pre id="describeContent">${esc(describe)}</pre>
+</div>
+${
+  yaml
+    ? `<div class="panel" id="tab-yaml">
+  <button class="copy-yaml-btn" id="copyYaml" title="Copy YAML to clipboard">📋 Copy YAML</button>
+  <pre id="yamlContent">${esc(yaml)}</pre>
+</div>`
+    : ""
+}
 <script>
 document.querySelectorAll('.tab').forEach(function(btn){
   btn.addEventListener('click',function(){
@@ -463,6 +479,20 @@ document.querySelectorAll('.tab').forEach(function(btn){
     document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
   });
 });
+function copyText(btnId, preId) {
+  var btn = document.getElementById(btnId);
+  var pre = document.getElementById(preId);
+  if (!btn || !pre) return;
+  btn.addEventListener('click', function() {
+    navigator.clipboard.writeText(pre.textContent || '').then(function() {
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 1500);
+    });
+  });
+}
+copyText('copyDescribe', 'describeContent');
+copyText('copyYaml', 'yamlContent');
 </script>
 </body></html>`;
 }
