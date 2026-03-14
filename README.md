@@ -8,40 +8,69 @@
   Works with any Kubernetes cluster — EKS, GKE, AKS, on-prem, kind, minikube.
 </p>
 
-## What's New in v0.2.0
-
-- **Fully standalone** — no extension dependencies required
-- **Sidebar dashboard** — Kubiq icon in the VS Code activity bar with:
-  - **Filter bar** — Profile, Cluster, Namespace dropdowns (auto-grouped for EKS/cloud clusters)
-  - **Status bar** — live connection indicator + metrics-server badge
-  - **Resource tabs** — Pods / Deploys / Services / ConfigMaps / Nodes / Events with count badges
-  - **Sortable tables** — click any column header to sort
-  - **Hover actions** — AI diagnose + Logs buttons on pod rows
-- **Auto-selects current context** — pre-selects the active kubectl context on load
-- **CPU/Memory columns** — shown automatically if metrics-server is available
-
 ## Features
 
-- **Sidebar Dashboard** — browse all Kubernetes resources from the activity bar. Filter by profile, cluster, and namespace in seconds.
+### Sidebar Dashboard
 
-- **Pod Diagnosis Panel** — click any pod to open an editor tab with:
-  - Container status, restart counts, last state
-  - Pod conditions grid
-  - Logs per container (current + previous run)
-  - Kubernetes events
-  - Full `kubectl describe` output
-  - **Interactive AI chat** — Claude analyzes crash patterns, logs, and events in real time
+Browse all Kubernetes resources from the VS Code activity bar.
 
-- **Crash Pattern Detection** — instant local scan for OOMKilled, CrashLoopBackOff, ImagePullBackOff, probe failures, scheduling errors, volume mount issues
+- **Filter bar** — Profile, Cluster, Namespace dropdowns (auto-grouped by AWS profile + region)
+- **Resource tabs** — Pods, Deployments, Services, ConfigMaps, Nodes, Events with count badges
+- **Sortable tables** — click any column header to sort
+- **Row actions** — AI diagnose, view logs, edit YAML, restart pod, port-forward
+- **Status bar** — live connection indicator + metrics-server badge
+- **CPU/Memory columns** — shown automatically when metrics-server is available
+- **Auto-selects current context** — pre-selects your active kubectl context on load
 
-- **Multi-cluster support** — works with any kubeconfig context. For AWS EKS clusters, auto-detects profile and region from the `exec` block with per-context manual overrides.
+### AI-Powered Pod Diagnosis
 
-- **Session Persistence** — Claude conversations survive panel close/reopen and VS Code restarts
+Click any pod to open a diagnosis panel with:
+
+- **Interactive AI chat** — Claude analyzes crash patterns, logs, and events in real time
+- **Streaming responses** — see the AI thinking as it types
+- **Session persistence** — conversations survive panel close/reopen and VS Code restarts
+- **11 built-in knowledge base skills** — crash patterns, networking, Istio, storage, security, node operations, deployments, port-forwarding, manifest editing, resource management, cloud providers
+- **Custom instructions** — add your own team-specific knowledge via `.kubiq/rules/*.md`
+
+### Crash Pattern Detection
+
+Instant local scan (no AI needed) for:
+OOMKilled, CrashLoopBackOff, ImagePullBackOff, liveness/readiness probe failures, scheduling errors, volume mount failures, insufficient resources
+
+### Pod Panel Tabs
+
+| Tab        | Content                                     |
+| ---------- | ------------------------------------------- |
+| Chat       | AI diagnosis + interactive follow-up        |
+| Containers | Status table + pod conditions grid          |
+| Logs       | Per-container logs with previous run toggle |
+| Events     | Kubernetes events for the pod               |
+| Describe   | Full `kubectl describe` output              |
+| YAML       | Full pod manifest with copy button          |
+
+### Resource Management
+
+- **Edit YAML** — click ✎ on any resource to edit in a themed panel with Apply/Cancel
+- **Restart pods** — delete + let deployment recreate (with confirmation)
+- **Port-forward** — opens VS Code terminal, supports multi-port (comma-separated)
+- **Resource detail panels** — themed Describe + YAML views for deployments, services, configmaps, nodes
+
+### LLM Guardrails
+
+| Feature                | Setting                                    | Default                                                 |
+| ---------------------- | ------------------------------------------ | ------------------------------------------------------- |
+| AI on/off toggle       | `kubiq.ai.enabled`                         | `true`                                                  |
+| Prompt presets         | `kubiq.ai.promptPreset`                    | `default` (also: sre-oncall, developer, security-audit) |
+| Custom instructions    | `kubiq.ai.customInstructions`              | `""`                                                    |
+| Secret sanitization    | `kubiq.guardrails.sanitizeSecrets`         | `true`                                                  |
+| Env var redaction      | `kubiq.guardrails.sanitizeEnvVars`         | `true`                                                  |
+| Custom redact patterns | `kubiq.guardrails.redactPatterns`          | `[]`                                                    |
+| Command safety flags   | `kubiq.guardrails.flagDestructiveCommands` | `true`                                                  |
 
 ## Prerequisites
 
 ```bash
-# kubectl (any cluster — EKS, GKE, AKS, on-prem, kind, minikube)
+# kubectl (any cluster)
 kubectl version --client
 
 # Claude Code CLI (required for AI diagnosis)
@@ -55,13 +84,7 @@ kubectl config get-contexts
 ### EKS-specific (optional)
 
 ```bash
-# AWS CLI v2 — only needed for EKS clusters
-aws --version
-
-aws eks update-kubeconfig \
-  --name my-cluster \
-  --region us-east-1 \
-  --profile my-aws-profile
+aws eks update-kubeconfig --name my-cluster --region us-east-1 --profile my-profile
 ```
 
 ## Installation
@@ -69,7 +92,7 @@ aws eks update-kubeconfig \
 ### From VSIX
 
 ```bash
-code --install-extension kubiq-0.2.0.vsix
+code --install-extension kubiq-0.4.0.vsix
 ```
 
 ### From source
@@ -78,123 +101,33 @@ code --install-extension kubiq-0.2.0.vsix
 git clone https://github.com/maddinenisri/kubiq.git
 cd kubiq
 npm install
+cd webview-ui && npm install && cd ..
 npm run package
-code --install-extension kubiq-0.2.0.vsix
+code --install-extension kubiq-0.4.0.vsix
 ```
-
-## Usage
-
-### Sidebar Dashboard
-
-1. Click the Kubiq icon (cube-in-hexagon) in the activity bar
-2. Select your profile and cluster from the dropdowns
-3. Choose a namespace (or "all namespaces")
-4. Browse Pods, Deployments, Services, ConfigMaps, Nodes, Events
-5. Click any pod row or hover and click "AI" to open the diagnosis panel
-
-### Command Palette
-
-`Cmd+Shift+P` → **Kubiq: Diagnose Pod** → enter pod name, namespace, and select cluster context.
 
 ## Settings
 
-| Setting | Description | Default |
-|---|---|---|
-| `kubiq.clusterProfiles` | Manual profile/region overrides per kubeconfig context | `{}` |
-| `kubiq.logTailLines` | Number of log lines to fetch per container | `500` |
-
-### Profile Override (settings.json)
-
-```json
-{
-  "kubiq.clusterProfiles": {
-    "my-eks-cluster": {
-      "profile": "prod-admin",
-      "region": "us-east-1"
-    },
-    "my-gke-cluster": {
-      "profile": "default",
-      "region": "us-central1"
-    }
-  }
-}
-```
-
-For EKS clusters, auto-detection reads `--profile` and `--region` flags from the `exec` block in `~/.kube/config`. For other clusters, Kubiq uses the context as-is from kubeconfig.
-
-## Building from Source
-
-```bash
-npm install
-npm run compile          # esbuild bundle → out/extension.js
-npm run package          # compile + package into .vsix
-```
-
-### Development
-
-```bash
-npm run watch            # recompiles on file changes
-# Press F5 in VS Code → launches Extension Development Host
-```
-
-### Install / Uninstall
-
-```bash
-code --install-extension kubiq-0.2.0.vsix
-code --uninstall-extension kubiq.kubiq
-```
-
-## Architecture
-
-```
-src/
-├── extension.ts              # activation, sidebar + command registration
-├── sidebar/
-│   ├── sidebarProvider.ts    # WebviewViewProvider — owns dashboard state
-│   └── sidebarHtml.ts        # full dashboard HTML/CSS/JS
-├── kubectl/
-│   └── runner.ts             # all kubectl calls (pods, deploys, nodes, etc.)
-├── clusters/
-│   └── contextManager.ts     # kubeconfig parsing, profile resolution
-├── pods/
-│   └── crashAnalyzer.ts      # local crash pattern matching + Claude prompt builder
-├── claude/
-│   ├── claudeSession.ts      # persistent Claude CLI subprocess (NDJSON streaming)
-│   └── sessionStore.ts       # session + message persistence via VS Code globalState
-└── webview/
-    └── podPanel.ts           # per-pod diagnosis editor tab with full UI
-```
-
-### Design Decisions
-
-**Standalone** — Kubiq has zero extension dependencies. It reads `~/.kube/config` directly and shells out to `kubectl` for all cluster operations.
-
-**Any Kubernetes** — Works with any cluster that `kubectl` can reach. EKS, GKE, AKS, on-prem, kind, minikube. AWS-specific features (profile/region detection) activate automatically when EKS exec blocks are detected.
-
-**kubectl over client libraries** — Kubernetes auth is handled transparently by kubectl via kubeconfig. No need to reimplement token refresh for each cloud provider.
-
-**Claude CLI over API** — Uses `claude --print --output-format stream-json` as a persistent subprocess. Supports session resume, streaming token deltas, and inherits your existing Claude authentication.
-
-**Sidebar-first** — Instead of a tree view, Kubiq uses a filter-bar workflow: select profile, cluster, namespace, then browse resources in sortable tables.
-
-**Panel-per-pod** — Each pod opens a deduplicated editor tab. Reopening the same pod brings the existing panel to focus.
+| Setting                                    | Description                                                     | Default   |
+| ------------------------------------------ | --------------------------------------------------------------- | --------- |
+| `kubiq.clusterProfiles`                    | Manual profile/region overrides per kubeconfig context          | `{}`      |
+| `kubiq.logTailLines`                       | Log lines to fetch per container                                | `500`     |
+| `kubiq.ai.enabled`                         | Enable AI diagnostics                                           | `true`    |
+| `kubiq.ai.promptPreset`                    | AI personality (default, sre-oncall, developer, security-audit) | `default` |
+| `kubiq.ai.customInstructions`              | Additional instructions for AI                                  | `""`      |
+| `kubiq.guardrails.sanitizeSecrets`         | Strip secrets before sending to AI                              | `true`    |
+| `kubiq.guardrails.sanitizeEnvVars`         | Redact env var values                                           | `true`    |
+| `kubiq.guardrails.flagDestructiveCommands` | Flag destructive kubectl suggestions                            | `true`    |
 
 ## Privacy
 
-Pod logs and Kubernetes events are sent to the Claude CLI for AI diagnosis. The Claude CLI handles data transmission per Anthropic's [privacy policy](https://www.anthropic.com/privacy). Logs are not written to disk by the extension; they exist only in memory during the session.
+Pod logs and Kubernetes events are sent to the Claude CLI for AI diagnosis. The Claude CLI handles data transmission per Anthropic's [privacy policy](https://www.anthropic.com/privacy). Logs are not written to disk; they exist only in memory.
 
-To limit exposure:
-- Set `kubiq.logTailLines` to a smaller value
-- Use the Command Palette flow to diagnose specific pods selectively
+**Built-in guardrails:**
 
-## Roadmap
-
-- [ ] RBAC viewer — ClusterRoles, RoleBindings, IAM-to-K8s mapping
-- [ ] Node operations — drain, cordon, taint from the sidebar
-- [ ] Resource quota dashboard per namespace
-- [ ] Streaming log tail
-- [ ] Multi-cluster context switcher in status bar
-- [ ] Cloud-specific panels: EKS node groups, GKE autopilot, AKS node pools
+- Secret sanitization strips AWS keys, JWT tokens, passwords, connection strings, GitHub/GitLab tokens before sending to AI
+- Destructive kubectl commands in AI responses are flagged with warning badges
+- AI can be fully disabled via `kubiq.ai.enabled: false`
 
 ## License
 
