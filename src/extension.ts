@@ -75,15 +75,7 @@ async function runDiagnosis(
   const panel = PodPanel.open(extCtx, podName, namespace, clusterContext);
 
   panel.onReady(async () => {
-    const stored = sessionStore.get(podKey);
-    if (stored) {
-      panel.sendChatHistory(stored.messages);
-      const session = createSession(podKey, stored.sessionId);
-      wireSession(session, panel, podKey);
-      return;
-    }
-
-    panel.sendThinking();
+    // Always fetch snapshot for Containers/Logs/Events/Describe tabs
     let snapshot;
     try {
       snapshot = await vscode.window.withProgress(
@@ -104,6 +96,23 @@ async function runDiagnosis(
 
     panel.renderSnapshot(snapshot as Parameters<typeof panel.renderSnapshot>[0]);
 
+    // Restore chat history if session exists
+    const stored = sessionStore.get(podKey);
+    if (stored) {
+      panel.sendChatHistory(stored.messages);
+      const session = createSession(podKey, stored.sessionId);
+      wireSession(session, panel, podKey);
+
+      // Send context info
+      const aiEnabled = vscode.workspace.getConfiguration("kubiq.ai").get("enabled", true);
+      panel.sendContextInfo(
+        aiEnabled
+          ? crashAnalyzer.getPromptContext()
+          : { preset: "disabled", skills: [], sanitization: false, customInstructions: false },
+      );
+      return;
+    }
+
     // Check if AI is enabled
     const aiEnabled = vscode.workspace.getConfiguration("kubiq.ai").get("enabled", true);
     if (!aiEnabled) {
@@ -116,7 +125,8 @@ async function runDiagnosis(
       return;
     }
 
-    // Send context info to chat UI
+    // Fresh start: send context info and begin AI session
+    panel.sendThinking();
     const ctx = crashAnalyzer.getPromptContext();
     panel.sendContextInfo(ctx);
 
