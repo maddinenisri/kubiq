@@ -363,14 +363,36 @@ ${styles()}
 
   // Markdown renderer — RegExp() constructors only, no inline regex literals.
   // Bold uses [*][*] to prevent browser treating /** as a JS block comment.
+  var codeBlockId = 0;
   function renderMarkdown(text) {
     var t = escHtml(text);
-    t = t.replace(new RegExp('\\\\x60\\\\x60\\\\x60[\\\\w]*\\\\n?([\\\\s\\\\S]*?)\\\\x60\\\\x60\\\\x60', 'g'), '<pre class="inline-code">$1</pre>');
+    t = t.replace(new RegExp('\\\\x60\\\\x60\\\\x60[\\\\w]*\\\\n?([\\\\s\\\\S]*?)\\\\x60\\\\x60\\\\x60', 'g'), function(_, code) {
+      var id = 'codeblock-' + (codeBlockId++);
+      return '<div class="code-block-wrap"><pre class="inline-code" id="' + id + '">' + code + '</pre>'
+        + '<button class="copy-btn" data-target="' + id + '" title="Copy">'
+        + '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zm1.75-.25a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"/></svg>'
+        + '</button></div>';
+    });
     t = t.replace(new RegExp('\\\\x60([^\\\\x60]+)\\\\x60', 'g'), '<code>$1</code>');
     t = t.replace(new RegExp('[*][*]([^*]+)[*][*]', 'g'), '<strong>$1</strong>');
     t = t.replace(new RegExp('\\n', 'g'), '<br>');
     return t;
   }
+
+  // Copy button handler (delegated)
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.copy-btn');
+    if (!btn) return;
+    var targetId = btn.getAttribute('data-target');
+    var pre = document.getElementById(targetId);
+    if (!pre) return;
+    var text = pre.textContent || '';
+    navigator.clipboard.writeText(text).then(function() {
+      btn.classList.add('copied');
+      btn.title = 'Copied!';
+      setTimeout(function() { btn.classList.remove('copied'); btn.title = 'Copy'; }, 1500);
+    });
+  });
 
     // ── Snapshot rendering ───────────────────────────────────────────────────
 
@@ -553,8 +575,18 @@ function styles(): string {
                        border-radius:3px; font-size:11.5px; color:#a0d8c8; }
     .ai-bubble pre.inline-code { font-family:var(--font-mono); background:#0d1018; padding:10px 12px;
                                    border-radius:4px; font-size:11.5px; overflow-x:auto;
-                                   color:#a0d8c8; margin:6px 0; border:1px solid var(--border); }
+                                   color:#a0d8c8; margin:0; border:1px solid var(--border); }
     .ai-bubble strong { color:#e8ecf8; }
+
+    /* CODE BLOCK COPY BUTTON */
+    .code-block-wrap { position:relative; margin:6px 0; }
+    .copy-btn { position:absolute; top:6px; right:6px; background:var(--bg3); border:1px solid var(--border2);
+                 color:var(--dim); border-radius:4px; padding:4px 6px; cursor:pointer; opacity:0;
+                 transition:opacity .15s, color .15s, background .15s; display:flex; align-items:center; gap:4px;
+                 font-size:10px; font-family:var(--font-ui); z-index:1; }
+    .code-block-wrap:hover .copy-btn { opacity:1; }
+    .copy-btn:hover { color:var(--accent); border-color:var(--accent); background:var(--bg2); }
+    .copy-btn.copied { color:var(--ok); border-color:var(--ok); opacity:1; }
 
     .cursor { color:var(--accent); animation:blink .8s step-end infinite; font-weight:300; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
