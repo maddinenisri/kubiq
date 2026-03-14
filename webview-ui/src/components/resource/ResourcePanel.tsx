@@ -123,7 +123,9 @@ export function ResourcePanel({ kind, name, namespace, context }: ResourcePanelP
       </nav>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: "auto", padding: 14, display: "flex", flexDirection: "column" }}>
+      <div
+        style={{ flex: 1, overflow: "auto", padding: 14, display: "flex", flexDirection: "column" }}
+      >
         {activeTab === "describe" && (
           <>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>

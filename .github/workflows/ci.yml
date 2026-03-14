@@ -20,7 +20,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
-      - run: npm install
+      - name: Install extension dependencies
+        run: npm install
+
+      - name: Install webview dependencies
+        run: cd webview-ui && npm install
 
       - name: Typecheck
         run: npx tsc --noEmit
@@ -34,5 +38,5 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build
+      - name: Build (extension + webview)
         run: npm run compile
