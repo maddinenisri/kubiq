@@ -263,7 +263,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private async handleDescribeResource(resType: string, name: string, ns: string, ctx: string) {
-    // Map resource tab name to kubectl resource kind
     const kindMap: Record<string, string> = {
       deployments: "deployment",
       services: "service",
@@ -272,18 +271,23 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       events: "event",
     };
     const kind = kindMap[resType] ?? resType;
-    const nsFlag = kind === "node" ? "" : `-n ${ns}`;
 
     try {
-      const output = await runner.describe(ctx, kind, name, ns);
-      const doc = await vscode.workspace.openTextDocument({
-        content: output,
-        language: "yaml",
-      });
-      await vscode.window.showTextDocument(doc, { preview: true });
+      const [describeOut, yamlOut] = await Promise.all([
+        runner.describe(ctx, kind, name, ns),
+        runner.getYaml(ctx, kind, name, ns).catch(() => ""),
+      ]);
+
+      const panel = vscode.window.createWebviewPanel(
+        "kubiqResource",
+        `⬡ ${name}`,
+        vscode.ViewColumn.One,
+        { enableScripts: true, retainContextWhenHidden: true },
+      );
+      panel.webview.html = buildResourceHtml(kind, name, ns, ctx, describeOut, yamlOut);
     } catch (e) {
       vscode.window.showErrorMessage(
-        `Kubiq: failed to describe ${kind}/${name}: ${(e as Error).message}`,
+        `Kubiq: failed to load ${kind}/${name}: ${(e as Error).message}`,
       );
     }
   }
@@ -380,4 +384,85 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       return "";
     }
   }
+}
+
+// ── Themed resource detail panel HTML ──────────────────────────────────────────
+
+function esc(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildResourceHtml(
+  kind: string,
+  name: string,
+  ns: string,
+  ctx: string,
+  describe: string,
+  yaml: string,
+): string {
+  return /* html */ `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+:root {
+  --bg:#0d0f14;--bg2:#13161d;--bg3:#1a1e28;--border:#252a38;--border2:#2e3448;
+  --text:#c8cfe0;--dim:#5a6380;--accent:#4af0c8;--accent2:#3a7bd5;
+  --font-mono:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+  --font-ui:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);
+     font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{display:flex;align-items:center;gap:8px;padding:10px 16px;
+        background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.hex{color:var(--accent);font-size:16px;}
+.res-name{font-size:15px;font-weight:600;color:#e8ecf8;}
+.tag{padding:2px 8px;border-radius:3px;font-size:11px;font-family:var(--font-mono);}
+.kind-tag{background:#1a2235;border:1px solid #2a3a5a;color:var(--accent2);}
+.ns-tag{background:#1e2235;border:1px solid var(--border2);color:#7a85b0;}
+.ctx-tag{background:#1e2235;border:1px solid var(--border2);color:var(--dim);}
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{background:transparent;border:none;cursor:pointer;color:var(--dim);
+     padding:9px 18px;font-family:var(--font-ui);font-size:12px;font-weight:500;
+     letter-spacing:.04em;border-bottom:2px solid transparent;
+     transition:color .15s,border-color .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.panel{display:none;flex:1;overflow:auto;padding:14px;}
+.panel.active{display:block;}
+pre{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
+    padding:14px;font-family:var(--font-mono);font-size:11.5px;line-height:1.7;
+    white-space:pre-wrap;word-break:break-word;color:var(--text);}
+</style>
+</head><body>
+<div class="topbar">
+  <span class="hex">⬡</span>
+  <span class="res-name">${esc(name)}</span>
+  <span class="tag kind-tag">${esc(kind)}</span>
+  <span class="tag ns-tag">${esc(ns)}</span>
+  <span class="tag ctx-tag">${esc(ctx)}</span>
+</div>
+<div class="tabs">
+  <button class="tab active" data-tab="describe">Describe</button>
+  ${yaml ? '<button class="tab" data-tab="yaml">YAML</button>' : ""}
+</div>
+<div class="panel active" id="tab-describe"><pre>${esc(describe)}</pre></div>
+${yaml ? `<div class="panel" id="tab-yaml"><pre>${esc(yaml)}</pre></div>` : ""}
+<script>
+document.querySelectorAll('.tab').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body></html>`;
 }
