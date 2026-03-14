@@ -1,47 +1,45 @@
+@import "tailwindcss";
+
 /*
- * Kubiq theme — maps VS Code CSS variables to Kubiq design tokens.
+ * Kubiq theme — maps VS Code CSS variables to Tailwind custom properties.
  * Automatically adapts to dark, light, and high-contrast themes.
- * Brand accent (teal) is layered on top.
+ * Brand accent (teal) is consistent across all themes.
  */
 
-:root {
+@theme {
   /* Base colors from VS Code theme */
-  --kubiq-bg: var(--vscode-sideBar-background, #0d0f14);
-  --kubiq-bg2: var(--vscode-editor-background, #13161d);
-  --kubiq-bg3: var(--vscode-input-background, #1a1e28);
-  --kubiq-border: var(--vscode-panel-border, #252a38);
-  --kubiq-border2: var(--vscode-editorGroup-border, #2e3448);
-  --kubiq-text: var(--vscode-foreground, #c8cfe0);
-  --kubiq-dim: var(--vscode-descriptionForeground, #5a6380);
-  --kubiq-link: var(--vscode-textLink-foreground, #3a7bd5);
+  --color-bg: var(--vscode-sideBar-background, #0d0f14);
+  --color-bg2: var(--vscode-editor-background, #13161d);
+  --color-bg3: var(--vscode-input-background, #1a1e28);
+  --color-surface: var(--vscode-editorWidget-background, #1e2333);
+  --color-border: var(--vscode-panel-border, #252a38);
+  --color-border2: var(--vscode-editorGroup-border, #2e3448);
+  --color-text: var(--vscode-foreground, #c8cfe0);
+  --color-dim: var(--vscode-descriptionForeground, #5a6380);
+  --color-link: var(--vscode-textLink-foreground, #3a7bd5);
 
-  /* Brand accent — consistent across all themes */
-  --kubiq-accent: #4af0c8;
-  --kubiq-accent-dim: rgba(74, 240, 200, 0.15);
-  --kubiq-accent-border: rgba(74, 240, 200, 0.3);
+  /* Kubiq brand accent — consistent across all themes */
+  --color-accent: #4af0c8;
+  --color-accent-dim: rgba(74, 240, 200, 0.15);
 
   /* Semantic colors */
-  --kubiq-ok: var(--vscode-testing-iconPassed, #4af0c8);
-  --kubiq-warn: var(--vscode-editorWarning-foreground, #f0a84a);
-  --kubiq-err: var(--vscode-errorForeground, #f05a5a);
+  --color-ok: var(--vscode-testing-iconPassed, #4af0c8);
+  --color-warn: var(--vscode-editorWarning-foreground, #f0a84a);
+  --color-err: var(--vscode-errorForeground, #f05a5a);
 
   /* Fonts */
-  --kubiq-font-mono: var(--vscode-editor-font-family, 'JetBrains Mono', 'Fira Code', monospace);
-  --kubiq-font-ui: var(--vscode-font-family, 'Segoe UI', system-ui, sans-serif);
-  --kubiq-font-size: var(--vscode-font-size, 13px);
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --font-mono: var(--vscode-editor-font-family, "JetBrains Mono", "Fira Code", monospace);
+  --font-ui: var(--vscode-font-family, "Segoe UI", system-ui, sans-serif);
+  --font-size-xs: 9px;
+  --font-size-sm: 11px;
+  --font-size-base: 13px;
 }
 
 body {
-  background: var(--kubiq-bg);
-  color: var(--kubiq-text);
-  font-family: var(--kubiq-font-ui);
-  font-size: var(--kubiq-font-size);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
   height: 100vh;
   display: flex;
   flex-direction: column;
