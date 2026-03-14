@@ -32,8 +32,24 @@ export function CommandCard({ command, explanation, risk, issues }: CommandCardP
     const handler = (event: MessageEvent) => {
       if (event.data.type === "commandOutput" && event.data.command === command) {
         setRunning(false);
-        if (event.data.error) setError(event.data.error);
-        else setOutput(event.data.output);
+        if (event.data.error) {
+          setError(event.data.error);
+          // Auto-send error back to AI for analysis
+          postMessage({
+            type: "user_message",
+            text: `Command failed: \`${command}\`\n\nError:\n\`\`\`\n${event.data.error}\n\`\`\`\n\nPlease analyze this error and suggest what to do next.`,
+          } as never);
+        } else {
+          setOutput(event.data.output);
+          // Auto-send output back to AI for analysis
+          const truncated = event.data.output.length > 3000
+            ? event.data.output.slice(0, 3000) + "\n...[truncated]"
+            : event.data.output;
+          postMessage({
+            type: "user_message",
+            text: `Command output for: \`${command}\`\n\n\`\`\`\n${truncated}\n\`\`\`\n\nAnalyze this output and tell me what you see. If there's an issue, suggest the next diagnostic step or a fix.`,
+          } as never);
+        }
         window.removeEventListener("message", handler);
       }
     };

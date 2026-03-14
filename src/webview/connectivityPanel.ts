@@ -102,7 +102,13 @@ ${checkResults}
 3. If you need more data, suggest what to run next.
 4. When you find the issue, provide a concrete fix with the exact kubectl or YAML change needed.
 
-Important: Generate executable kubectl commands that the user can run directly. Use the actual pod name "${sourcePod}", namespace "${sourceNs}", service "${tgtSvc}", and target namespace "${tgtNs}" in all commands.`;
+IMPORTANT CAPABILITIES:
+- When you suggest kubectl commands in code blocks, the user can click a "Run" button next to each command.
+- The command output will be automatically sent back to you for analysis.
+- You DO NOT need to ask the user to copy/paste output — it happens automatically.
+- Generate commands one or two at a time, wait for the output, then decide the next step.
+- Use the actual pod name "${sourcePod}", namespace "${sourceNs}", service "${tgtSvc}", and target namespace "${tgtNs}" in all commands.
+- Start with the most likely cause based on the check results above.`;
 
         const session = new ClaudeSession();
         session.start();

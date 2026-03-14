@@ -113,7 +113,8 @@ Instructions:
 2. If there is a clear problem, state the root cause and one immediate fix.
 3. Keep this opening response SHORT — 4-6 sentences maximum.
 4. End with: "What would you like to investigate further?"
-5. You have the full pod context above for all follow-up questions in this session.`;
+5. You have the full pod context above for all follow-up questions in this session.
+6. When you suggest kubectl commands in code blocks, the user can click "Run" and the output will be automatically sent back to you. You do NOT need to ask users to copy/paste — it happens automatically.`;
   }
 
   private buildSystemPrompt(config: vscode.WorkspaceConfiguration): string {
