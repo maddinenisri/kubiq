@@ -6,6 +6,7 @@ import { SessionStore } from "./claude/sessionStore";
 import { runner } from "./kubectl/runner";
 import { crashAnalyzer } from "./pods/crashAnalyzer";
 import { validateResponse } from "./ai/responseValidator";
+import { invalidateSkillsCache } from "./ai/skillsLoader";
 
 const activeSessions = new Map<string, ClaudeSession>();
 let sessionStore: SessionStore;
@@ -28,7 +29,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // ── Commands ───────────────────────────────────────────────────────────────
   context.subscriptions.push(
-    vscode.commands.registerCommand("kubiq.refresh", () => sidebar.refresh()),
+    vscode.commands.registerCommand("kubiq.refresh", () => {
+      sidebar.refresh();
+      invalidateSkillsCache(); // reload workspace rules on refresh
+    }),
 
     vscode.commands.registerCommand(
       "kubiq.diagnosePod",

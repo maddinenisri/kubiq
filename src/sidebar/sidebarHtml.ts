@@ -587,8 +587,8 @@ tbody tr:hover .row-actions{opacity:1;}
           } else if (action === 'restart') {
             vscode.postMessage({ type:'restartPod', pod:name, namespace:ns, context:state.currentCtx });
           } else if (action === 'portforward') {
-            var port = prompt('Local port to forward (e.g. 8080):');
-            var targetPort = prompt('Container port (e.g. 8080):', port);
+            var port = prompt('Local port(s) — comma-separated for multi (e.g. 8080 or 8080,9090):');
+            var targetPort = prompt('Container port(s) — same count (e.g. 8080 or 8080,9090):', port);
             if (port && targetPort) {
               vscode.postMessage({ type:'portForward', pod:name, namespace:ns, context:state.currentCtx, localPort:port, remotePort:targetPort });
             }

@@ -230,6 +230,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private activeForwards = new Map<string, vscode.Terminal>();
+
   private handlePortForward(
     pod: string,
     ns: string,
@@ -237,21 +239,34 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     localPort: string,
     remotePort: string,
   ) {
+    // Support multi-port: "8080,9090" → "8080:8080 9090:9090"
+    const localPorts = localPort.split(",").map((p) => p.trim());
+    const remotePorts = remotePort.split(",").map((p) => p.trim());
+    const portMappings = localPorts.map((lp, i) => `${lp}:${remotePorts[i] ?? lp}`);
+
+    const key = `${pod}/${ns}/${portMappings.join("+")}`;
+
+    // Kill existing forward to same pod/ports
+    if (this.activeForwards.has(key)) {
+      this.activeForwards.get(key)!.dispose();
+      this.activeForwards.delete(key);
+    }
+
+    const label = portMappings.join(", ");
     const terminal = vscode.window.createTerminal({
-      name: `⇄ ${pod} ${localPort}:${remotePort}`,
+      name: `⇄ ${pod.slice(0, 20)} ${label}`,
       shellPath: "kubectl",
-      shellArgs: [
-        "port-forward",
-        pod,
-        `${localPort}:${remotePort}`,
-        `--namespace=${ns}`,
-        `--context=${ctx}`,
-      ],
+      shellArgs: ["port-forward", pod, ...portMappings, `--namespace=${ns}`, `--context=${ctx}`],
     });
     terminal.show();
-    vscode.window.showInformationMessage(
-      `Kubiq: port-forwarding ${pod} ${localPort}→${remotePort}`,
-    );
+    this.activeForwards.set(key, terminal);
+
+    // Clean up when terminal is closed
+    vscode.window.onDidCloseTerminal((t) => {
+      if (t === terminal) this.activeForwards.delete(key);
+    });
+
+    vscode.window.showInformationMessage(`Kubiq: port-forwarding ${pod} → ${label}`);
   }
 
   private sendError(view: vscode.WebviewView, message: string) {
