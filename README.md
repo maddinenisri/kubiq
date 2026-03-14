@@ -1,6 +1,12 @@
-# Kubiq
-
-Standalone Kubernetes intelligence dashboard for VS Code. Pod diagnostics, crash analysis, and multi-cluster management with AI — works with any Kubernetes cluster (EKS, GKE, AKS, on-prem, kind, minikube).
+<p align="center">
+  <img src="media/kubiq-icon.png" width="120" alt="Kubiq logo"/>
+</p>
+<h1 align="center">Kubiq</h1>
+<p align="center">
+  Standalone Kubernetes intelligence dashboard for VS Code.<br/>
+  Pod diagnostics, crash analysis, and multi-cluster management with AI.<br/>
+  Works with any Kubernetes cluster — EKS, GKE, AKS, on-prem, kind, minikube.
+</p>
 
 ## What's New in v0.2.0
 
