@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { PodSnapshot } from "../kubectl/runner";
 import { sanitize } from "../ai/sanitizer";
+import { loadSkills } from "../ai/skillsLoader";
 
 // Known crash patterns for instant local pre-classification (no CLI involved)
 const CRASH_PATTERNS: Array<{
@@ -54,6 +55,12 @@ export class CrashAnalyzer {
     return null;
   }
 
+  private extensionPath = "";
+
+  setExtensionPath(p: string) {
+    this.extensionPath = p;
+  }
+
   buildInitialPrompt(snapshot: PodSnapshot): string {
     const config = vscode.workspace.getConfiguration("kubiq");
     const guardrails = vscode.workspace.getConfiguration("kubiq.guardrails");
@@ -103,37 +110,13 @@ Instructions:
       prompt += `\n\nAdditional instructions:\n${customInstructions}`;
     }
 
-    // 3. Workspace rules from .kubiq/rules/*.md (loaded once, sent as system context)
-    const workspaceRules = this.loadWorkspaceRules();
-    if (workspaceRules) {
-      prompt += `\n\nProject-specific knowledge base (from .kubiq/rules/):\n${workspaceRules}`;
+    // 3. Built-in skills + workspace rules (loaded once, cached)
+    const skills = loadSkills(this.extensionPath);
+    if (skills) {
+      prompt += `\n\nKnowledge base:\n${skills}`;
     }
 
     return prompt;
-  }
-
-  private loadWorkspaceRules(): string {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders) return "";
-
-    const fs = require("fs");
-    const path = require("path");
-    const rulesDir = path.join(workspaceFolders[0].uri.fsPath, ".kubiq", "rules");
-
-    try {
-      if (!fs.existsSync(rulesDir)) return "";
-      const files: string[] = fs.readdirSync(rulesDir).filter((f: string) => f.endsWith(".md"));
-      if (files.length === 0) return "";
-
-      return files
-        .map((f: string) => {
-          const content = fs.readFileSync(path.join(rulesDir, f), "utf8");
-          return `### ${f.replace(".md", "")}\n${content.trim()}`;
-        })
-        .join("\n\n");
-    } catch {
-      return "";
-    }
   }
 
   private buildRawPodData(snapshot: PodSnapshot): string {

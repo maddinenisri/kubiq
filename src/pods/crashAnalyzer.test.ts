@@ -110,6 +110,7 @@ describe("CrashAnalyzer.buildInitialPrompt", () => {
     const snap = makeSnapshot({ logs: { app: longLog } });
     const prompt = analyzer.buildInitialPrompt(snap);
     expect(prompt).toContain("[truncated]");
-    expect(prompt.length).toBeLessThan(longLog.length);
+    // The full 5000-char log should not appear verbatim (truncated to ~3000)
+    expect(prompt).not.toContain(longLog);
   });
 });

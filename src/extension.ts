@@ -12,6 +12,7 @@ let sessionStore: SessionStore;
 
 export async function activate(context: vscode.ExtensionContext) {
   sessionStore = new SessionStore(context.globalState);
+  crashAnalyzer.setExtensionPath(context.extensionPath);
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   const sidebar = new SidebarProvider(context.extensionUri);
