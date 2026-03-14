@@ -163,6 +163,7 @@ export function ExtensionStateProvider({ children }: { children: ReactNode }) {
   // Global message listener — ALL messages from extension host flow through here
   const handleMessage = useCallback(
     (message: ExtensionMessage) => {
+      console.log("[Kubiq] received:", message.type, message);
       dispatch({ type: "EXT_MESSAGE", message });
     },
     [dispatch],
