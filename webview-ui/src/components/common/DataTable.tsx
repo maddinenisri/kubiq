@@ -4,6 +4,7 @@ export interface Column<T> {
   key: string;
   label: string;
   sortable?: boolean;
+  sortValue?: (row: T) => string | number; // custom sort value extractor
   render: (row: T) => ReactNode;
   className?: string;
   headerClassName?: string;
@@ -43,8 +44,9 @@ export function DataTable<T>({
 
   const sortedRows = sortCol
     ? [...rows].sort((a, b) => {
-        const av = String((a as Record<string, unknown>)[sortCol] ?? "");
-        const bv = String((b as Record<string, unknown>)[sortCol] ?? "");
+        const col = columns.find((c) => c.key === sortCol);
+        const av = col?.sortValue ? String(col.sortValue(a)) : String((a as Record<string, unknown>)[sortCol] ?? "");
+        const bv = col?.sortValue ? String(col.sortValue(b)) : String((b as Record<string, unknown>)[sortCol] ?? "");
         const cmp = av.localeCompare(bv, undefined, { numeric: true });
         return sortDir === "asc" ? cmp : -cmp;
       })

@@ -28,6 +28,7 @@ const SA_COLUMNS: Column<ServiceAccountRow>[] = [
     key: "boundRoles",
     label: "Bound Roles",
     className: "text-dim text-[10px]",
+    sortValue: (r) => r.boundRoles.length,
     render: (r) => <>{r.boundRoles.join(", ") || "—"}</>,
   },
   { key: "age", label: "Age", className: "text-dim", render: (r) => <>{r.age}</> },
@@ -55,13 +56,15 @@ const ROLE_COLUMNS: Column<RoleRow>[] = [
   },
   { key: "ruleCount", label: "Rules", className: "text-dim", render: (r) => <>{r.ruleCount}</> },
   {
-    key: "warnings",
-    label: "",
-    sortable: false,
+    key: "warningCount",
+    label: "⚠",
+    sortValue: (r) => r.warnings.length,
     render: (r) =>
       r.warnings.length > 0 ? (
         <span style={{ color: "#f05a5a", fontSize: 10 }}>⚠ {r.warnings.length}</span>
-      ) : null,
+      ) : (
+        <span style={{ color: "#5a6380", fontSize: 10 }}>—</span>
+      ),
   },
   { key: "age", label: "Age", className: "text-dim", render: (r) => <>{r.age}</> },
 ];
