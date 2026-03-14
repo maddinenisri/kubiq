@@ -5,37 +5,32 @@ import { postMessage } from "../../lib/vscode";
 export function FilterBar() {
   const { state, dispatch } = useExtensionState();
 
+  // User changes profile → clear cluster selection
   const handleProfileChange = useCallback(
-    (profile: string) => {
+    (_profile: string) => {
       dispatch({ type: "SET_CONTEXT", context: "" });
     },
     [dispatch],
   );
 
+  // User selects a cluster → set context (side effect in provider auto-fetches namespaces)
   const handleClusterChange = useCallback(
     (context: string) => {
       if (!context) return;
       dispatch({ type: "SET_CONTEXT", context });
-      dispatch({ type: "SET_LOADING", loading: true });
-      postMessage({ type: "getNamespaces", context });
     },
     [dispatch],
   );
 
+  // User changes namespace → clear data and refetch (side effect in provider handles it)
   const handleNamespaceChange = useCallback(
     (namespace: string) => {
       dispatch({ type: "SET_NAMESPACE", namespace });
-      dispatch({ type: "SET_LOADING", loading: true });
-      postMessage({
-        type: "fetch",
-        context: state.currentContext,
-        namespace,
-        resource: state.currentResource,
-      });
     },
-    [dispatch, state.currentContext, state.currentResource],
+    [dispatch],
   );
 
+  // Manual refresh
   const handleRefresh = useCallback(() => {
     if (!state.currentContext) return;
     dispatch({ type: "CLEAR_DATA" });
@@ -48,10 +43,10 @@ export function FilterBar() {
     });
   }, [dispatch, state.currentContext, state.currentNamespace, state.currentResource]);
 
-  // Get clusters for the selected profile
-  const selectedProfile = Object.keys(state.clustersByProfile).find((p) => {
-    return state.clustersByProfile[p]?.includes(state.currentContext);
-  });
+  // Find which profile contains the current context
+  const selectedProfile = Object.keys(state.clustersByProfile).find((p) =>
+    state.clustersByProfile[p]?.includes(state.currentContext),
+  );
 
   return (
     <div className="flex flex-col gap-1 p-2 bg-bg2 border-b border-border shrink-0">

@@ -20,8 +20,8 @@ export default defineConfig({
         resource: resolve(__dirname, "src", "resource.tsx"),
       },
       output: {
-        entryFileNames: "[name].js",
-        chunkFileNames: "chunks/[name]-[hash].js",
+        entryFileNames: "assets/[name].js",
+        chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
       },
     },

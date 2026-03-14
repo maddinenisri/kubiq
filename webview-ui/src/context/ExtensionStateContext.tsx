@@ -1,7 +1,15 @@
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
 import type { ExtensionMessage } from "@shared/messages";
 import type { ResourceType, ContextInfo, StoredMessage, FlaggedCommand } from "@shared/types";
 import { useAllExtensionMessages } from "../hooks/useExtensionMessage";
+import { postMessage } from "../lib/vscode";
 
 // ── State shape ─────────────────────────────────────────────────────────────
 
@@ -32,7 +40,7 @@ const initialState: ExtensionState = {
   profiles: [],
   clustersByProfile: {},
   currentContext: "",
-  currentNamespace: "default",
+  currentNamespace: "_all",
   currentResource: "pods",
   namespaces: [],
   hasMetrics: false,
@@ -48,7 +56,7 @@ const initialState: ExtensionState = {
   flaggedCommands: [],
 };
 
-// ── Reducer ─────────────────────────────────────────────────────────────────
+// ── Actions ─────────────────────────────────────────────────────────────────
 
 type Action =
   | { type: "SET_RESOURCE"; resource: ResourceType }
@@ -66,7 +74,7 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
     case "SET_NAMESPACE":
       return { ...state, currentNamespace: action.namespace, data: {} };
     case "SET_CONTEXT":
-      return { ...state, currentContext: action.context, data: {}, namespaces: [] };
+      return { ...state, currentContext: action.context, data: {}, namespaces: [], connected: false };
     case "SET_LOADING":
       return { ...state, loading: action.loading };
     case "SET_ERROR":
@@ -83,6 +91,8 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
             profiles: msg.profiles,
             clustersByProfile: msg.clustersByProfile,
             currentContext: msg.currentContext,
+            // If we got a context, mark loading so the effect picks it up
+            loading: !!msg.currentContext,
           };
         case "namespaces":
           return {
@@ -90,7 +100,7 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
             namespaces: msg.namespaces,
             hasMetrics: msg.hasMetrics,
             connected: true,
-            loading: false,
+            loading: true, // Keep loading — we'll auto-fetch resources next
           };
         case "data":
           return {
@@ -129,6 +139,8 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
           };
         case "error":
           return { ...state, error: msg.message, loading: false, streaming: false };
+        case "refresh":
+          return { ...state, data: {}, loading: true };
         default:
           return state;
       }
@@ -148,14 +160,47 @@ const ExtensionStateCtx = createContext<{
 export function ExtensionStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // Global message listener — ALL messages from extension host flow through here
   const handleMessage = useCallback(
     (message: ExtensionMessage) => {
       dispatch({ type: "EXT_MESSAGE", message });
     },
     [dispatch],
   );
-
   useAllExtensionMessages(handleMessage);
+
+  // ── Side effects — react to state changes ─────────────────────────────────
+
+  // When context changes (from bootstrap or user selection), fetch namespaces
+  useEffect(() => {
+    if (state.currentContext && !state.connected && state.namespaces.length === 0) {
+      postMessage({ type: "getNamespaces", context: state.currentContext });
+    }
+  }, [state.currentContext, state.connected, state.namespaces.length]);
+
+  // When connected and current resource has no data, auto-fetch
+  useEffect(() => {
+    if (state.connected && state.currentContext && !state.data[state.currentResource]) {
+      postMessage({
+        type: "fetch",
+        context: state.currentContext,
+        namespace: state.currentNamespace,
+        resource: state.currentResource,
+      });
+    }
+  }, [state.connected, state.currentContext, state.currentNamespace, state.currentResource, state.data]);
+
+  // When refresh is triggered (data cleared + loading), re-fetch current resource
+  useEffect(() => {
+    if (state.loading && state.connected && state.currentContext && Object.keys(state.data).length === 0) {
+      postMessage({
+        type: "fetch",
+        context: state.currentContext,
+        namespace: state.currentNamespace,
+        resource: state.currentResource,
+      });
+    }
+  }, [state.loading, state.connected, state.currentContext, state.currentNamespace, state.currentResource, state.data]);
 
   return (
     <ExtensionStateCtx.Provider value={{ state, dispatch }}>
