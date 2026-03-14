@@ -546,13 +546,13 @@ ${styles()}
       return;
     }
     var html = '<span class="ctx-label">AI:</span>';
-    html += '<span class="ctx-chip">' + esc(ctx.preset) + '</span>';
+    html += '<span class="ctx-chip">' + escHtml(ctx.preset) + '</span>';
     if (ctx.sanitization) html += '<span class="ctx-chip">🛡 sanitized</span>';
     if (ctx.customInstructions) html += '<span class="ctx-chip warn">custom prompt</span>';
     if (ctx.skills && ctx.skills.length > 0) {
       html += '<span class="ctx-label" style="margin-left:4px">skills:</span>';
       for (var i = 0; i < ctx.skills.length; i++) {
-        html += '<span class="ctx-chip">' + esc(ctx.skills[i]) + '</span>';
+        html += '<span class="ctx-chip">' + escHtml(ctx.skills[i]) + '</span>';
       }
     }
     bar.style.display = 'flex';
