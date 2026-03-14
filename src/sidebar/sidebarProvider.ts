@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { getSidebarHtml } from "./sidebarHtml";
+import { getWebviewHtml } from "../utils/html";
 import { runner } from "../kubectl/runner";
 import { contextManager } from "../clusters/contextManager";
 
@@ -28,9 +28,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.view = view;
     view.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this.extUri],
+      localResourceRoots: [
+        vscode.Uri.joinPath(this.extUri, "out"),
+        vscode.Uri.joinPath(this.extUri, "media"),
+      ],
     };
-    view.webview.html = getSidebarHtml(view.webview);
+    view.webview.html = getWebviewHtml(view.webview, this.extUri, "sidebar");
 
     view.webview.onDidReceiveMessage(async (msg: Record<string, unknown>) => {
       switch (msg.type as string) {

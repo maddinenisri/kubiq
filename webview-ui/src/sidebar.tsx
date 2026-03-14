@@ -1,16 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ExtensionStateProvider } from "./context/ExtensionStateContext";
+import { Sidebar } from "./components/sidebar/Sidebar";
+import { postMessage } from "./lib/vscode";
 import "./index.css";
 
 function SidebarApp() {
   return (
-    <div style={{ padding: 16, textAlign: "center" }}>
-      <div style={{ color: "var(--kubiq-accent)", fontSize: 32 }}>⬡</div>
-      <h2 style={{ marginTop: 8 }}>Kubiq</h2>
-      <p style={{ color: "var(--kubiq-dim)", marginTop: 8, fontSize: 12 }}>
-        React 19 sidebar — ready for migration
-      </p>
-    </div>
+    <ExtensionStateProvider>
+      <Sidebar />
+    </ExtensionStateProvider>
   );
 }
 
@@ -19,3 +18,6 @@ createRoot(document.getElementById("root")!).render(
     <SidebarApp />
   </StrictMode>,
 );
+
+// Signal ready to extension host
+postMessage({ type: "init" });
