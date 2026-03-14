@@ -97,7 +97,7 @@ export class KubectlRunner {
     return { ...process.env, AWS_PROFILE: p.profile, AWS_DEFAULT_REGION: p.region };
   }
 
-  private async run(args: string[], context: string): Promise<string> {
+  async run(args: string[], context: string): Promise<string> {
     try {
       const { stdout } = await exec("kubectl", args, {
         env: this.env(context),
@@ -110,7 +110,7 @@ export class KubectlRunner {
     }
   }
 
-  private async runSafe(args: string[], context: string): Promise<string> {
+  async runSafe(args: string[], context: string): Promise<string> {
     try {
       return await this.run(args, context);
     } catch {

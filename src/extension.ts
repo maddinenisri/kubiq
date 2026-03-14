@@ -83,6 +83,21 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  // ── Connectivity Debugger ─────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("kubiq.testConnectivity", async () => {
+      const { openConnectivityPanel } = await import("./webview/connectivityPanel");
+      const { execSync } = require("child_process");
+      let currentCtx = "";
+      try {
+        currentCtx = execSync("kubectl config current-context", { encoding: "utf8" }).trim();
+      } catch {
+        /* ignore */
+      }
+      openConnectivityPanel(context, currentCtx);
+    }),
+  );
+
   console.log("Kubiq: activated (standalone)");
 }
 

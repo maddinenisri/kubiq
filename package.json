@@ -78,6 +78,11 @@
         "command": "kubiq.openTopology",
         "title": "Kubiq: Node Topology",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "kubiq.testConnectivity",
+        "title": "Kubiq: Test Connectivity",
+        "icon": "$(plug)"
       }
     ],
     "menus": {
@@ -89,6 +94,11 @@
         },
         {
           "command": "kubiq.openTopology",
+          "when": "view == kubiq.dashboard",
+          "group": "navigation"
+        },
+        {
+          "command": "kubiq.testConnectivity",
           "when": "view == kubiq.dashboard",
           "group": "navigation"
         },

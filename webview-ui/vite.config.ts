@@ -20,6 +20,7 @@ export default defineConfig({
         resource: resolve(__dirname, "src", "resource.tsx"),
         settings: resolve(__dirname, "src", "settings.tsx"),
         topology: resolve(__dirname, "src", "topology.tsx"),
+        connectivity: resolve(__dirname, "src", "connectivity.tsx"),
       },
       output: {
         entryFileNames: "assets/[name].js",
