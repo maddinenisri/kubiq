@@ -75,6 +75,59 @@ export async function openConnectivityPanel(
       }
     }
 
+    if (msg.type === "aiDeepDive") {
+      // Open a pod diagnosis panel with connectivity context pre-loaded
+      const { PodPanel } = await import("./podPanel");
+      const { ClaudeSession } = await import("../services/ClaudeService");
+      const { SessionStore } = await import("../services/SessionStoreService");
+
+      const sourcePod = msg.sourcePod as string;
+      const sourceNs = msg.sourceNamespace as string;
+      const tgtSvc = msg.targetService as string;
+      const tgtNs = msg.targetNamespace as string;
+      const checkResults = msg.checkResults as string;
+
+      const diagPanel = PodPanel.open(context, sourcePod, sourceNs, kubectlContext);
+
+      diagPanel.onReady(async () => {
+        // Send the connectivity context as an AI prompt
+        const prompt = `You are investigating a connectivity issue between pod "${sourcePod}" (namespace: ${sourceNs}) and service "${tgtSvc}" (namespace: ${tgtNs}).
+
+## Automated Check Results
+${checkResults}
+
+## Your Task
+1. Analyze the check results above and identify the root cause.
+2. Generate specific kubectl commands to investigate further. Present each command with an explanation.
+3. If you need more data, suggest what to run next.
+4. When you find the issue, provide a concrete fix with the exact kubectl or YAML change needed.
+
+Important: Generate executable kubectl commands that the user can run directly. Use the actual pod name "${sourcePod}", namespace "${sourceNs}", service "${tgtSvc}", and target namespace "${tgtNs}" in all commands.`;
+
+        const session = new ClaudeSession();
+        session.start();
+
+        diagPanel.sendThinking();
+
+        session.on("text_delta", (text) => diagPanel.sendTextDelta(text));
+        session.on("turn_complete", (full) => {
+          diagPanel.sendTurnComplete(full);
+        });
+        session.on("error", (err) => diagPanel.sendError(err));
+        session.on("session_init", () => {});
+
+        // Wire follow-up messages
+        diagPanel.onUserMessage((text) => {
+          diagPanel.sendThinking();
+          session.send(text);
+        });
+
+        session.send(prompt);
+      });
+
+      return;
+    }
+
     if (msg.type === "runTest") {
       try {
         const result = await testConnectivity(

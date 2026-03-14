@@ -228,6 +228,44 @@ export function ConnectivityPanel(_props: ConnectivityPanelProps) {
             {summary}
           </div>
         )}
+
+        {/* AI Deep Dive button */}
+        {summary && !testing && (
+          <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+            <button
+              onClick={() => {
+                // Build context from all check results for AI
+                const checkSummary = checks.map((c) =>
+                  `${c.status === "pass" ? "✅" : c.status === "fail" ? "❌" : "⚠"} ${c.name}: ${c.message}${c.details ? ` (${c.details})` : ""}`
+                ).join("\n");
+
+                postMessage({
+                  type: "aiDeepDive",
+                  sourcePod: srcPod,
+                  sourceNamespace: srcNs,
+                  targetService: tgtSvc,
+                  targetNamespace: tgtNs,
+                  checkResults: checkSummary,
+                } as never);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "10px 20px",
+                borderRadius: 6,
+                fontSize: 13,
+                fontWeight: 600,
+                border: "none",
+                background: "linear-gradient(135deg, #3a7bd5 0%, #4af0c8 100%)",
+                color: "#0d0f14",
+                cursor: "pointer",
+              }}
+            >
+              🤖 AI Deep Dive — Investigate Further
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
