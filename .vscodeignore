@@ -4,6 +4,7 @@
 .husky/**
 node_modules/**
 src/**
+webview-ui/**
 coverage/**
 tsconfig.json
 vitest.config.ts
@@ -15,7 +16,9 @@ commitlint.config.js
 build.js
 build-vsix.sh
 **/*.ts
+**/*.tsx
 **/*.map
 .git/**
 .gitignore
 *.vsix
+!out/**
