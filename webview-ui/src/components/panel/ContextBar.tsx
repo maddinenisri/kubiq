@@ -19,12 +19,18 @@ export function ContextBar({ info }: ContextBarProps) {
   return (
     <div className="flex flex-wrap gap-1 px-2.5 py-1 bg-bg border-b border-border shrink-0 text-[9px] items-center">
       <span className="text-dim mr-0.5">AI:</span>
-      <span className="px-1.5 rounded-full border border-accent/20 text-accent/60">{info.preset}</span>
+      <span className="px-1.5 rounded-full border border-accent/20 text-accent/60">
+        {info.preset}
+      </span>
       {info.sanitization && (
-        <span className="px-1.5 rounded-full border border-accent/20 text-accent/60">🛡 sanitized</span>
+        <span className="px-1.5 rounded-full border border-accent/20 text-accent/60">
+          🛡 sanitized
+        </span>
       )}
       {info.customInstructions && (
-        <span className="px-1.5 rounded-full border border-warn/30 text-warn/60">custom prompt</span>
+        <span className="px-1.5 rounded-full border border-warn/30 text-warn/60">
+          custom prompt
+        </span>
       )}
       {info.skills.length > 0 && (
         <>

@@ -9,7 +9,12 @@ const baseColumns: Column<NodeRow>[] = [
   { key: "status", label: "Status", render: (r) => <StatusChip status={r.status} /> },
   { key: "roles", label: "Roles", className: "text-dim", render: (r) => <>{r.roles}</> },
   { key: "age", label: "Age", className: "text-dim", render: (r) => <>{r.age}</> },
-  { key: "version", label: "Version", className: "font-mono text-dim", render: (r) => <>{r.version}</> },
+  {
+    key: "version",
+    label: "Version",
+    className: "font-mono text-dim",
+    render: (r) => <>{r.version}</>,
+  },
 ];
 
 export function NodesTable({ rows }: { rows: NodeRow[] }) {
@@ -19,8 +24,18 @@ export function NodesTable({ rows }: { rows: NodeRow[] }) {
   const columns: Column<NodeRow>[] = hasMetrics
     ? [
         ...baseColumns,
-        { key: "cpu", label: "CPU", className: "font-mono text-dim", render: (r) => <>{r.cpu ?? "—"}</> },
-        { key: "mem", label: "Mem", className: "font-mono text-dim", render: (r) => <>{r.mem ?? "—"}</> },
+        {
+          key: "cpu",
+          label: "CPU",
+          className: "font-mono text-dim",
+          render: (r) => <>{r.cpu ?? "—"}</>,
+        },
+        {
+          key: "mem",
+          label: "Mem",
+          className: "font-mono text-dim",
+          render: (r) => <>{r.mem ?? "—"}</>,
+        },
       ]
     : baseColumns;
 
@@ -30,7 +45,13 @@ export function NodesTable({ rows }: { rows: NodeRow[] }) {
       rows={rows}
       rowKey={(r) => r.name}
       onRowClick={(r) =>
-        postMessage({ type: "describeResource", resource: "nodes", name: r.name, namespace: "", context: state.currentContext })
+        postMessage({
+          type: "describeResource",
+          resource: "nodes",
+          name: r.name,
+          namespace: "",
+          context: state.currentContext,
+        })
       }
       emptyMessage="No nodes found"
     />

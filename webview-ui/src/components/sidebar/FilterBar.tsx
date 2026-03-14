@@ -99,7 +99,9 @@ export function FilterBar() {
 
       {/* Namespace + Refresh */}
       <div className="flex gap-1 items-center">
-        <span className="text-xs text-dim uppercase tracking-wide w-[58px] shrink-0">Namespace</span>
+        <span className="text-xs text-dim uppercase tracking-wide w-[58px] shrink-0">
+          Namespace
+        </span>
         <select
           className="flex-1 bg-bg3 border border-border2 text-text px-1.5 py-1 rounded text-sm font-mono outline-none focus:border-accent appearance-none cursor-pointer disabled:opacity-40"
           disabled={state.namespaces.length === 0}

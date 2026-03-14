@@ -12,9 +12,10 @@ export function TabNav({ tabs, activeTab, onTabChange }: TabNavProps) {
           key={tab}
           onClick={() => onTabChange(tab)}
           className={`px-4 py-2 text-xs font-medium tracking-wide border-b-2 cursor-pointer transition-colors
-            ${activeTab === tab
-              ? "text-accent border-accent"
-              : "text-dim border-transparent hover:text-text"
+            ${
+              activeTab === tab
+                ? "text-accent border-accent"
+                : "text-dim border-transparent hover:text-text"
             }`}
         >
           {tab}

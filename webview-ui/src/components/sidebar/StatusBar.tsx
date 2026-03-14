@@ -13,9 +13,7 @@ export function StatusBar() {
       </div>
       <span
         className={`text-[9px] px-1.5 rounded-full border ${
-          state.hasMetrics
-            ? "text-ok border-ok/30 bg-ok/10"
-            : "text-dim border-border2 bg-bg3"
+          state.hasMetrics ? "text-ok border-ok/30 bg-ok/10" : "text-dim border-border2 bg-bg3"
         }`}
       >
         metrics: {state.hasMetrics ? "on" : "off"}

@@ -21,9 +21,10 @@ export function LogsTab({ snapshot }: LogsTabProps) {
             key={name}
             onClick={() => setActive(name)}
             className={`px-3 py-1 rounded text-xs font-mono cursor-pointer border transition-colors
-              ${active === name
-                ? "bg-ok/10 border-ok/30 text-ok"
-                : "bg-bg3 border-border2 text-dim hover:border-accent hover:text-text"
+              ${
+                active === name
+                  ? "bg-ok/10 border-ok/30 text-ok"
+                  : "bg-bg3 border-border2 text-dim hover:border-accent hover:text-text"
               }`}
           >
             {name}
@@ -33,9 +34,10 @@ export function LogsTab({ snapshot }: LogsTabProps) {
           <button
             onClick={() => setActive("__prev")}
             className={`px-3 py-1 rounded text-xs font-mono cursor-pointer border transition-colors
-              ${active === "__prev"
-                ? "bg-warn/10 border-warn/30 text-warn"
-                : "bg-bg3 border-border2 text-warn/60 hover:border-warn"
+              ${
+                active === "__prev"
+                  ? "bg-warn/10 border-warn/30 text-warn"
+                  : "bg-bg3 border-border2 text-warn/60 hover:border-warn"
               }`}
           >
             previous run

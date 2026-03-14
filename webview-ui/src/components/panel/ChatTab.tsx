@@ -76,14 +76,19 @@ export function ChatTab() {
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[82%] px-3.5 py-2.5 rounded-lg text-sm leading-relaxed whitespace-pre-wrap break-words
-                ${msg.role === "user"
-                  ? "bg-[#1a2a45] border border-[#2a3a60] text-[#d0d8f0] rounded-br-sm"
-                  : "bg-[#1a1e28] border border-[#2e3448] text-[#c8cfe0] rounded-tl-sm"
+                ${
+                  msg.role === "user"
+                    ? "bg-[#1a2a45] border border-[#2a3a60] text-[#d0d8f0] rounded-br-sm"
+                    : "bg-[#1a1e28] border border-[#2e3448] text-[#c8cfe0] rounded-tl-sm"
                 }`}
             >
-              <div style={{ color: msg.role === "user" ? "#d0d8f0" : "#c8cfe0" }}>
-                {msg.content || <em style={{ color: "#5a6380" }}>Empty response</em>}
-              </div>
+              {msg.role === "assistant" && msg.content ? (
+                <Markdown content={msg.content} />
+              ) : (
+                <div style={{ color: msg.role === "user" ? "#d0d8f0" : "#c8cfe0" }}>
+                  {msg.content || <em style={{ color: "#5a6380" }}>Empty response</em>}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -102,9 +107,18 @@ export function ChatTab() {
         {state.streaming && !state.streamText && (
           <div className="flex justify-start">
             <div className="px-3.5 py-2.5 rounded-lg bg-bg3 border border-border2 rounded-tl-sm flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "0ms" }} />
-              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "150ms" }} />
-              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "300ms" }} />
+              <span
+                className="w-2 h-2 rounded-full bg-accent animate-pulse"
+                style={{ animationDelay: "0ms" }}
+              />
+              <span
+                className="w-2 h-2 rounded-full bg-accent animate-pulse"
+                style={{ animationDelay: "150ms" }}
+              />
+              <span
+                className="w-2 h-2 rounded-full bg-accent animate-pulse"
+                style={{ animationDelay: "300ms" }}
+              />
             </div>
           </div>
         )}

@@ -12,7 +12,12 @@ export function ResourceView() {
   const { state, dispatch } = useExtensionState();
 
   if (state.error) {
-    return <ErrorBanner message={state.error} onDismiss={() => dispatch({ type: "SET_ERROR", error: null })} />;
+    return (
+      <ErrorBanner
+        message={state.error}
+        onDismiss={() => dispatch({ type: "SET_ERROR", error: null })}
+      />
+    );
   }
 
   if (state.loading) {

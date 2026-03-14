@@ -80,7 +80,9 @@ export function DataTable<T>({
                 )}
               </th>
             ))}
-            {renderActions && <th className="sticky top-0 z-10 bg-bg3 border-b border-border2 w-0" />}
+            {renderActions && (
+              <th className="sticky top-0 z-10 bg-bg3 border-b border-border2 w-0" />
+            )}
           </tr>
         </thead>
         <tbody>

@@ -41,19 +41,17 @@ export function ResourceTabs() {
             key={tab.key}
             onClick={() => handleTabClick(tab.key)}
             className={`px-2.5 py-1.5 text-sm font-medium whitespace-nowrap border-b-2 shrink-0 cursor-pointer transition-colors
-              ${isActive
-                ? "text-accent border-accent"
-                : "text-dim border-transparent hover:text-text"
+              ${
+                isActive
+                  ? "text-accent border-accent"
+                  : "text-dim border-transparent hover:text-text"
               }`}
           >
             {tab.label}
             {count !== undefined && (
               <span
                 className={`ml-1 text-[9px] px-1.5 rounded-full border inline-block
-                  ${isActive
-                    ? "border-accent/30 text-accent"
-                    : "border-border2 text-dim bg-bg3"
-                  }`}
+                  ${isActive ? "border-accent/30 text-accent" : "border-border2 text-dim bg-bg3"}`}
               >
                 {count}
               </span>

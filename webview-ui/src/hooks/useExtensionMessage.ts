@@ -23,9 +23,7 @@ export function useExtensionMessage<T extends ExtensionMessage["type"]>(
 /**
  * Hook that listens for ALL messages from the extension host.
  */
-export function useAllExtensionMessages(
-  handler: (message: ExtensionMessage) => void,
-): void {
+export function useAllExtensionMessages(handler: (message: ExtensionMessage) => void): void {
   useEffect(() => {
     function onMessage(event: MessageEvent<ExtensionMessage>) {
       handler(event.data);

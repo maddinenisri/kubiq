@@ -76,7 +76,13 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
     case "SET_CONTEXT":
       // Don't reset if same context
       if (state.currentContext === action.context) return state;
-      return { ...state, currentContext: action.context, data: {}, namespaces: [], connected: false };
+      return {
+        ...state,
+        currentContext: action.context,
+        data: {},
+        namespaces: [],
+        connected: false,
+      };
     case "SET_LOADING":
       return { ...state, loading: action.loading };
     case "SET_ERROR":
@@ -202,11 +208,22 @@ export function ExtensionStateProvider({ children }: { children: ReactNode }) {
         resource: state.currentResource,
       });
     }
-  }, [state.connected, state.currentContext, state.currentNamespace, state.currentResource, state.data]);
+  }, [
+    state.connected,
+    state.currentContext,
+    state.currentNamespace,
+    state.currentResource,
+    state.data,
+  ]);
 
   // When refresh is triggered (data cleared + loading), re-fetch current resource
   useEffect(() => {
-    if (state.loading && state.connected && state.currentContext && Object.keys(state.data).length === 0) {
+    if (
+      state.loading &&
+      state.connected &&
+      state.currentContext &&
+      Object.keys(state.data).length === 0
+    ) {
       postMessage({
         type: "fetch",
         context: state.currentContext,
@@ -214,12 +231,17 @@ export function ExtensionStateProvider({ children }: { children: ReactNode }) {
         resource: state.currentResource,
       });
     }
-  }, [state.loading, state.connected, state.currentContext, state.currentNamespace, state.currentResource, state.data]);
+  }, [
+    state.loading,
+    state.connected,
+    state.currentContext,
+    state.currentNamespace,
+    state.currentResource,
+    state.data,
+  ]);
 
   return (
-    <ExtensionStateCtx.Provider value={{ state, dispatch }}>
-      {children}
-    </ExtensionStateCtx.Provider>
+    <ExtensionStateCtx.Provider value={{ state, dispatch }}>{children}</ExtensionStateCtx.Provider>
   );
 }
 

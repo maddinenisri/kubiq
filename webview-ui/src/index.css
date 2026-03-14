@@ -62,9 +62,16 @@ body {
 .prose-kubiq {
   color: #c8cfe0;
 }
-.prose-kubiq p { margin-bottom: 0.5rem; }
-.prose-kubiq p:last-child { margin-bottom: 0; }
-.prose-kubiq strong { color: #e8ecf8; font-weight: 600; }
+.prose-kubiq p {
+  margin-bottom: 0.5rem;
+}
+.prose-kubiq p:last-child {
+  margin-bottom: 0;
+}
+.prose-kubiq strong {
+  color: #e8ecf8;
+  font-weight: 600;
+}
 .prose-kubiq code {
   font-family: var(--font-mono);
   background: #0d1018;
@@ -83,7 +90,18 @@ body {
   color: #a0d8c8;
   margin: 6px 0;
 }
-.prose-kubiq ul, .prose-kubiq ol { margin-bottom: 0.5rem; }
-.prose-kubiq li { margin-bottom: 0.25rem; }
-.prose-kubiq a { color: #3a7bd5; }
-.prose-kubiq h1, .prose-kubiq h2, .prose-kubiq h3 { color: #e8ecf8; }
+.prose-kubiq ul,
+.prose-kubiq ol {
+  margin-bottom: 0.5rem;
+}
+.prose-kubiq li {
+  margin-bottom: 0.25rem;
+}
+.prose-kubiq a {
+  color: #3a7bd5;
+}
+.prose-kubiq h1,
+.prose-kubiq h2,
+.prose-kubiq h3 {
+  color: #e8ecf8;
+}

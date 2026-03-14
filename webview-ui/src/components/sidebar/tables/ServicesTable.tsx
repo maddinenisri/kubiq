@@ -5,7 +5,12 @@ import { useExtensionState } from "../../../context/ExtensionStateContext";
 
 const columns: Column<ServiceRow>[] = [
   { key: "name", label: "Name", className: "font-mono", render: (r) => <>{r.name}</> },
-  { key: "namespace", label: "Namespace", className: "font-mono text-dim", render: (r) => <>{r.namespace}</> },
+  {
+    key: "namespace",
+    label: "Namespace",
+    className: "font-mono text-dim",
+    render: (r) => <>{r.namespace}</>,
+  },
   {
     key: "type",
     label: "Type",
@@ -15,14 +20,25 @@ const columns: Column<ServiceRow>[] = [
       </span>
     ),
   },
-  { key: "clusterIp", label: "Cluster IP", className: "font-mono text-dim", render: (r) => <>{r.clusterIp}</> },
+  {
+    key: "clusterIp",
+    label: "Cluster IP",
+    className: "font-mono text-dim",
+    render: (r) => <>{r.clusterIp}</>,
+  },
   {
     key: "externalIp",
     label: "External IP",
     className: "font-mono",
     render: (r) => <span className={r.externalIp === "—" ? "text-dim" : ""}>{r.externalIp}</span>,
   },
-  { key: "ports", label: "Ports", sortable: false, className: "font-mono text-dim text-[10px]", render: (r) => <>{r.ports}</> },
+  {
+    key: "ports",
+    label: "Ports",
+    sortable: false,
+    className: "font-mono text-dim text-[10px]",
+    render: (r) => <>{r.ports}</>,
+  },
   { key: "age", label: "Age", className: "text-dim", render: (r) => <>{r.age}</> },
 ];
 
@@ -35,12 +51,26 @@ export function ServicesTable({ rows }: { rows: ServiceRow[] }) {
       rows={rows}
       rowKey={(r) => `${r.namespace}/${r.name}`}
       onRowClick={(r) =>
-        postMessage({ type: "describeResource", resource: "services", name: r.name, namespace: r.namespace, context: state.currentContext })
+        postMessage({
+          type: "describeResource",
+          resource: "services",
+          name: r.name,
+          namespace: r.namespace,
+          context: state.currentContext,
+        })
       }
       renderActions={(r) => (
         <ActionButton
           title="Edit YAML"
-          onClick={() => postMessage({ type: "editYaml", resource: "services", name: r.name, namespace: r.namespace, context: state.currentContext })}
+          onClick={() =>
+            postMessage({
+              type: "editYaml",
+              resource: "services",
+              name: r.name,
+              namespace: r.namespace,
+              context: state.currentContext,
+            })
+          }
         >
           ✎
         </ActionButton>

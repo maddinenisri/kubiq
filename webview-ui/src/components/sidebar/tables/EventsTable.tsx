@@ -17,15 +17,18 @@ const columns: Column<EventRow>[] = [
     className: "font-mono text-dim text-[10px]",
     render: (r) => <>{r.object}</>,
   },
-  { key: "namespace", label: "Namespace", className: "font-mono text-dim", render: (r) => <>{r.namespace}</> },
+  {
+    key: "namespace",
+    label: "Namespace",
+    className: "font-mono text-dim",
+    render: (r) => <>{r.namespace}</>,
+  },
   {
     key: "message",
     label: "Message",
     sortable: false,
     className: "text-dim text-[10px]",
-    render: (r) => (
-      <span className="max-w-[200px] truncate inline-block">{r.message}</span>
-    ),
+    render: (r) => <span className="max-w-[200px] truncate inline-block">{r.message}</span>,
   },
 ];
 

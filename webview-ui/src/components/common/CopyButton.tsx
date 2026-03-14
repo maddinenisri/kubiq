@@ -21,9 +21,10 @@ export function CopyButton({ text, label = "Copy", className = "" }: CopyButtonP
       onClick={handleCopy}
       title={copied ? "Copied!" : label}
       className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-ui border transition-colors
-        ${copied
-          ? "text-ok border-ok/30"
-          : "text-dim border-border2 hover:text-accent hover:border-accent/30"
+        ${
+          copied
+            ? "text-ok border-ok/30"
+            : "text-dim border-border2 hover:text-accent hover:border-accent/30"
         }
         bg-bg3 cursor-pointer ${className}`}
     >

@@ -53,9 +53,7 @@ export function ContainersTab({ snapshot }: ContainersTabProps) {
           <div
             key={c.type}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs border ${
-              c.status === "True"
-                ? "bg-ok/10 border-ok/30"
-                : "bg-err/10 border-err/30"
+              c.status === "True" ? "bg-ok/10 border-ok/30" : "bg-err/10 border-err/30"
             }`}
           >
             <span className="font-semibold">{c.type}</span>

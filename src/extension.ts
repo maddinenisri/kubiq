@@ -105,8 +105,14 @@ async function runDiagnosis(
 
     if (!aiEnabled) return;
 
-    // Clear any stale stored sessions and always start fresh
-    sessionStore.clear(podKey);
+    // Restore chat history if session exists
+    const stored = sessionStore.get(podKey);
+    if (stored && stored.messages.length > 0) {
+      panel.sendChatHistory(stored.messages);
+      const session = createSession(podKey, stored.sessionId);
+      wireSession(session, panel, podKey);
+      return;
+    }
 
     // Fresh start: begin AI diagnosis
     panel.sendThinking();

@@ -59,8 +59,18 @@ export function PodsTable({ rows }: { rows: PodRow[] }) {
   const allColumns: Column<PodRow>[] = hasMetrics
     ? [
         ...columns,
-        { key: "cpu", label: "CPU", className: "font-mono text-dim", render: (r) => <>{r.cpu ?? "—"}</> },
-        { key: "mem", label: "Mem", className: "font-mono text-dim", render: (r) => <>{r.mem ?? "—"}</> },
+        {
+          key: "cpu",
+          label: "CPU",
+          className: "font-mono text-dim",
+          render: (r) => <>{r.cpu ?? "—"}</>,
+        },
+        {
+          key: "mem",
+          label: "Mem",
+          className: "font-mono text-dim",
+          render: (r) => <>{r.mem ?? "—"}</>,
+        },
       ]
     : columns;
 
@@ -70,32 +80,67 @@ export function PodsTable({ rows }: { rows: PodRow[] }) {
       rows={rows}
       rowKey={(r) => `${r.namespace}/${r.name}`}
       onRowClick={(r) =>
-        postMessage({ type: "diagnose", pod: r.name, namespace: r.namespace, context: state.currentContext })
+        postMessage({
+          type: "diagnose",
+          pod: r.name,
+          namespace: r.namespace,
+          context: state.currentContext,
+        })
       }
       renderActions={(r) => (
         <>
           <ActionButton
             variant="accent"
             title="AI Diagnose"
-            onClick={() => postMessage({ type: "diagnose", pod: r.name, namespace: r.namespace, context: state.currentContext })}
+            onClick={() =>
+              postMessage({
+                type: "diagnose",
+                pod: r.name,
+                namespace: r.namespace,
+                context: state.currentContext,
+              })
+            }
           >
             ⬡ AI
           </ActionButton>
           <ActionButton
             title="View Logs"
-            onClick={() => postMessage({ type: "diagnose", pod: r.name, namespace: r.namespace, context: state.currentContext, tab: "logs" })}
+            onClick={() =>
+              postMessage({
+                type: "diagnose",
+                pod: r.name,
+                namespace: r.namespace,
+                context: state.currentContext,
+                tab: "logs",
+              })
+            }
           >
             Logs
           </ActionButton>
           <ActionButton
             title="Edit YAML"
-            onClick={() => postMessage({ type: "editYaml", resource: "pods", name: r.name, namespace: r.namespace, context: state.currentContext })}
+            onClick={() =>
+              postMessage({
+                type: "editYaml",
+                resource: "pods",
+                name: r.name,
+                namespace: r.namespace,
+                context: state.currentContext,
+              })
+            }
           >
             ✎
           </ActionButton>
           <ActionButton
             title="Restart Pod"
-            onClick={() => postMessage({ type: "restartPod", pod: r.name, namespace: r.namespace, context: state.currentContext })}
+            onClick={() =>
+              postMessage({
+                type: "restartPod",
+                pod: r.name,
+                namespace: r.namespace,
+                context: state.currentContext,
+              })
+            }
           >
             ↺
           </ActionButton>
@@ -105,7 +150,14 @@ export function PodsTable({ rows }: { rows: PodRow[] }) {
               const local = prompt("Local port(s) (e.g. 8080 or 8080,9090):");
               const remote = prompt("Container port(s):", local ?? "");
               if (local && remote)
-                postMessage({ type: "portForward", pod: r.name, namespace: r.namespace, context: state.currentContext, localPort: local, remotePort: remote });
+                postMessage({
+                  type: "portForward",
+                  pod: r.name,
+                  namespace: r.namespace,
+                  context: state.currentContext,
+                  localPort: local,
+                  remotePort: remote,
+                });
             }}
           >
             ⇄
