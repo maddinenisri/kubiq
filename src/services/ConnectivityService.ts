@@ -35,6 +35,7 @@ export async function testConnectivity(
     { name: "Target Pods Ready", status: "pending", message: "" },
     { name: "NetworkPolicy", status: "pending", message: "" },
     { name: "DNS Resolution", status: "pending", message: "" },
+    { name: "Istio Service Mesh", status: "pending", message: "" },
   ];
 
   const update = (idx: number, check: Partial<ConnectivityCheck>) => {
@@ -261,6 +262,134 @@ export async function testConnectivity(
       status: "warn",
       message: "Could not test DNS (nslookup may not be available in container)",
     });
+  }
+
+  // Check 6: Istio Service Mesh
+  update(5, { status: "running" });
+  try {
+    // Check if source pod has istio-proxy sidecar
+    const podRaw = await runner.runSafe(
+      [
+        "get",
+        "pod",
+        sourcePod,
+        "-o",
+        "json",
+        `--namespace=${sourceNamespace}`,
+        `--context=${context}`,
+      ],
+      context,
+    );
+    const podObj = JSON.parse(podRaw);
+    const podSpec = podObj.spec as Record<string, unknown>;
+    const containers = (podSpec.containers as Array<Record<string, unknown>>) ?? [];
+    const hasProxy = containers.some((c) => (c.name as string) === "istio-proxy");
+
+    if (!hasProxy) {
+      update(5, { status: "pass", message: "No Istio sidecar — plain Kubernetes networking" });
+    } else {
+      // Check istio-proxy container status
+      const podStatus = podObj.status as Record<string, unknown>;
+      const cs = (podStatus.containerStatuses as Array<Record<string, unknown>>) ?? [];
+      const proxyStatus = cs.find((c) => (c.name as string) === "istio-proxy");
+      const proxyReady = proxyStatus?.ready as boolean;
+
+      const issues: string[] = [];
+
+      // Check mTLS mode
+      const peerAuthRaw = await runner.runSafe(
+        [
+          "get",
+          "peerauthentication",
+          "-o",
+          "json",
+          `--namespace=${targetNamespace}`,
+          `--context=${context}`,
+        ],
+        context,
+      );
+      let mtlsMode = "unknown";
+      try {
+        const pa = JSON.parse(peerAuthRaw);
+        const items = (pa.items as Array<Record<string, unknown>>) ?? [];
+        if (items.length > 0) {
+          const firstSpec = items[0].spec as Record<string, unknown>;
+          mtlsMode = ((firstSpec?.mtls as Record<string, unknown>)?.mode as string) ?? "PERMISSIVE";
+          if (mtlsMode === "STRICT") {
+            issues.push("mTLS is STRICT — non-mesh clients will be rejected");
+          }
+        }
+      } catch {
+        /* no PeerAuthentication CRD */
+      }
+
+      // Check for VirtualService routing
+      const vsRaw = await runner.runSafe(
+        [
+          "get",
+          "virtualservice",
+          "-o",
+          "json",
+          `--namespace=${targetNamespace}`,
+          `--context=${context}`,
+        ],
+        context,
+      );
+      let vsCount = 0;
+      try {
+        vsCount = (JSON.parse(vsRaw).items as unknown[])?.length ?? 0;
+      } catch {
+        /* */
+      }
+      if (vsCount > 0) {
+        issues.push(`${vsCount} VirtualService(s) — traffic may be routed differently`);
+      }
+
+      // Check for DestinationRule
+      const drRaw = await runner.runSafe(
+        [
+          "get",
+          "destinationrule",
+          "-o",
+          "json",
+          `--namespace=${targetNamespace}`,
+          `--context=${context}`,
+        ],
+        context,
+      );
+      let drCount = 0;
+      try {
+        drCount = (JSON.parse(drRaw).items as unknown[])?.length ?? 0;
+      } catch {
+        /* */
+      }
+      if (drCount > 0) {
+        issues.push(
+          `${drCount} DestinationRule(s) — may affect load balancing or circuit breaking`,
+        );
+      }
+
+      if (!proxyReady) {
+        update(5, {
+          status: "fail",
+          message: "Istio sidecar (istio-proxy) is NOT ready",
+          details: "Envoy proxy is down — all mesh traffic will fail. Check istio-proxy logs.",
+        });
+      } else if (issues.length > 0) {
+        update(5, {
+          status: "warn",
+          message: `Istio mesh active (mTLS: ${mtlsMode}). ${issues.length} item(s) to review`,
+          details: issues.join("\n"),
+        });
+      } else {
+        update(5, {
+          status: "pass",
+          message: `Istio mesh active — sidecar healthy, mTLS: ${mtlsMode}`,
+        });
+      }
+    }
+  } catch {
+    update(5, { status: "pass", message: "Istio not detected or CRDs not available" });
   }
 
   return buildResult(sourcePod, sourceNamespace, targetService, targetNamespace, checks);
