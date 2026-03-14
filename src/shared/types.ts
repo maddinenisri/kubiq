@@ -130,6 +130,55 @@ export interface CanIResult {
   allowed: boolean;
 }
 
+// ── Node Topology types ─────────────────────────────────────────────────────
+
+export interface TopologyContainer {
+  name: string;
+  ready: boolean;
+  restartCount: number;
+  state: string;
+  image: string;
+}
+
+export interface TopologyPod {
+  name: string;
+  namespace: string;
+  status: string;
+  ready: string;
+  restarts: number;
+  cpuRequest: number; // millicores
+  memRequest: number; // bytes
+}
+
+export interface TopologyNode {
+  name: string;
+  status: string;
+  roles: string;
+  version: string;
+  age: string;
+  instanceType: string;
+  zone: string;
+  nodeGroup: string;
+  taints: Array<{ key: string; value?: string; effect: string }>;
+  memoryPressure: boolean;
+  diskPressure: boolean;
+  cpuCapacity: number; // millicores
+  memCapacity: number; // bytes
+  podCapacity: number;
+  cpuAllocated: number; // millicores
+  memAllocated: number; // bytes
+  podCount: number;
+  cpuActual?: number;
+  memActual?: number;
+  pods: TopologyPod[];
+}
+
+export interface TopologyData {
+  nodes: TopologyNode[];
+  hasMetrics: boolean;
+  fetchedAt: number;
+}
+
 // ── Pod snapshot (diagnosis panel) ──────────────────────────────────────────
 
 export interface ContainerStatus {

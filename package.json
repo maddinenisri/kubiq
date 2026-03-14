@@ -73,6 +73,11 @@
         "command": "kubiq.openSettings",
         "title": "Kubiq: Open Settings",
         "icon": "$(gear)"
+      },
+      {
+        "command": "kubiq.openTopology",
+        "title": "Kubiq: Node Topology",
+        "icon": "$(type-hierarchy)"
       }
     ],
     "menus": {

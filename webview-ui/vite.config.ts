@@ -19,6 +19,7 @@ export default defineConfig({
         panel: resolve(__dirname, "src", "panel.tsx"),
         resource: resolve(__dirname, "src", "resource.tsx"),
         settings: resolve(__dirname, "src", "settings.tsx"),
+        topology: resolve(__dirname, "src", "topology.tsx"),
       },
       output: {
         entryFileNames: "assets/[name].js",

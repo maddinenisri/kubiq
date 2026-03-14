@@ -330,6 +330,149 @@ export class KubectlRunner {
       .reverse(); // newest first
   }
 
+  // ── Node Topology ────────────────────────────────────────────────────
+
+  async getNodeTopology(context: string): Promise<import("../shared/types").TopologyData> {
+    const { parseCpu, parseMemory } = await import("../utils/resources");
+
+    const [nodesRaw, podsRaw, topNodesRaw] = await Promise.all([
+      this.run(["get", "nodes", "-o", "json", `--context=${context}`], context),
+      this.run(["get", "pods", "-o", "json", "--all-namespaces", `--context=${context}`], context),
+      this.runSafe(["top", "nodes", "--no-headers", `--context=${context}`], context),
+    ]);
+
+    // Parse top nodes
+    const topMap = new Map<string, { cpu: number; mem: number }>();
+    for (const line of topNodesRaw.split("\n").filter(Boolean)) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length >= 5) {
+        topMap.set(parts[0], {
+          cpu: parseCpu(parts[1]),
+          mem: parseMemory(parts[3]),
+        });
+      }
+    }
+
+    // Parse pods and group by node
+    const podsByNode = new Map<string, Array<Record<string, unknown>>>();
+    const podsObj = JSON.parse(podsRaw);
+    for (const item of (podsObj.items as unknown[]) ?? []) {
+      const pod = item as Record<string, unknown>;
+      const spec = pod.spec as Record<string, unknown>;
+      const nodeName = spec?.nodeName as string;
+      if (!nodeName) continue;
+      if (!podsByNode.has(nodeName)) podsByNode.set(nodeName, []);
+      podsByNode.get(nodeName)!.push(pod);
+    }
+
+    // Parse nodes
+    const nodesObj = JSON.parse(nodesRaw);
+    const nodes: import("../shared/types").TopologyNode[] = (
+      (nodesObj.items as unknown[]) ?? []
+    ).map((item: unknown) => {
+      const i = item as Record<string, unknown>;
+      const meta = i.metadata as Record<string, unknown>;
+      const spec = i.spec as Record<string, unknown>;
+      const status = i.status as Record<string, unknown>;
+      const labels = (meta.labels as Record<string, string>) ?? {};
+      const conditions = (status.conditions as Array<Record<string, unknown>>) ?? [];
+      const allocatable = (status.allocatable as Record<string, string>) ?? {};
+      const nodeInfo = (status.nodeInfo as Record<string, string>) ?? {};
+      const taints = ((spec.taints as Array<Record<string, unknown>>) ?? []).map((t) => ({
+        key: t.key as string,
+        value: t.value as string | undefined,
+        effect: t.effect as string,
+      }));
+
+      const nodeName = meta.name as string;
+      const cpuCap = parseCpu(allocatable.cpu ?? "0");
+      const memCap = parseMemory(allocatable.memory ?? "0");
+      const podCap = parseInt(allocatable.pods ?? "110", 10);
+
+      // Calculate allocated from pods
+      const nodePods = podsByNode.get(nodeName) ?? [];
+      let cpuAlloc = 0;
+      let memAlloc = 0;
+
+      const topologyPods: import("../shared/types").TopologyPod[] = nodePods.map((pod) => {
+        const podMeta = pod.metadata as Record<string, unknown>;
+        const podStatus = pod.status as Record<string, unknown>;
+        const podSpec = pod.spec as Record<string, unknown>;
+        const cs = (podStatus.containerStatuses as Array<Record<string, unknown>>) ?? [];
+        const containers = (podSpec.containers as Array<Record<string, unknown>>) ?? [];
+
+        let podCpuReq = 0;
+        let podMemReq = 0;
+        for (const c of containers) {
+          const res = c.resources as Record<string, unknown> | undefined;
+          const requests = res?.requests as Record<string, string> | undefined;
+          if (requests?.cpu) podCpuReq += parseCpu(requests.cpu);
+          if (requests?.memory) podMemReq += parseMemory(requests.memory);
+        }
+        cpuAlloc += podCpuReq;
+        memAlloc += podMemReq;
+
+        const totalRestarts = cs.reduce((sum, c) => sum + ((c.restartCount as number) ?? 0), 0);
+        const readyCount = cs.filter((c) => c.ready).length;
+
+        return {
+          name: podMeta.name as string,
+          namespace: podMeta.namespace as string,
+          status: this.podStatus(pod),
+          ready: `${readyCount}/${cs.length}`,
+          restarts: totalRestarts,
+          cpuRequest: podCpuReq,
+          memRequest: podMemReq,
+        };
+      });
+
+      const ready =
+        conditions.find((c) => c.type === "Ready")?.status === "True" ? "Ready" : "NotReady";
+      const roles =
+        Object.keys(labels)
+          .filter((k) => k.startsWith("node-role.kubernetes.io/"))
+          .map((k) => k.replace("node-role.kubernetes.io/", ""))
+          .join(",") || "worker";
+
+      const top = topMap.get(nodeName);
+
+      return {
+        name: nodeName,
+        status: ready,
+        roles,
+        version: nodeInfo.kubeletVersion ?? "",
+        age: this.age(meta.creationTimestamp as string),
+        instanceType:
+          labels["node.kubernetes.io/instance-type"] ??
+          labels["beta.kubernetes.io/instance-type"] ??
+          "",
+        zone:
+          labels["topology.kubernetes.io/zone"] ??
+          labels["failure-domain.beta.kubernetes.io/zone"] ??
+          "",
+        nodeGroup:
+          labels["eks.amazonaws.com/nodegroup"] ??
+          labels["kops.k8s.io/instancegroup"] ??
+          labels["cloud.google.com/gke-nodepool"] ??
+          "",
+        taints,
+        memoryPressure: conditions.some((c) => c.type === "MemoryPressure" && c.status === "True"),
+        diskPressure: conditions.some((c) => c.type === "DiskPressure" && c.status === "True"),
+        cpuCapacity: cpuCap,
+        memCapacity: memCap,
+        podCapacity: podCap,
+        cpuAllocated: cpuAlloc,
+        memAllocated: memAlloc,
+        podCount: topologyPods.length,
+        cpuActual: top?.cpu,
+        memActual: top?.mem,
+        pods: topologyPods,
+      };
+    });
+
+    return { nodes, hasMetrics: topMap.size > 0, fetchedAt: Date.now() };
+  }
+
   // ── RBAC ─────────────────────────────────────────────────────────────
 
   async getServiceAccounts(

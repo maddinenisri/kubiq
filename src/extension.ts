@@ -68,6 +68,21 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  // ── Node Topology ───────────────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand("kubiq.openTopology", async () => {
+      const { openTopologyPanel } = await import("./webview/topologyPanel");
+      const { execSync } = require("child_process");
+      let currentCtx = "";
+      try {
+        currentCtx = execSync("kubectl config current-context", { encoding: "utf8" }).trim();
+      } catch {
+        /* ignore */
+      }
+      openTopologyPanel(context, currentCtx);
+    }),
+  );
+
   console.log("Kubiq: activated (standalone)");
 }
 
