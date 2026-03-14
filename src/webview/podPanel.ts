@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { PodSnapshot } from "../pods/podDiagnostics";
+import type { PodSnapshot } from "../kubectl/runner";
 import type { StoredMessage } from "../claude/sessionStore";
 
 type UserMessageHandler = (text: string) => void;

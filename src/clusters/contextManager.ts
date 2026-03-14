@@ -125,6 +125,17 @@ export class ContextManager {
     }
   }
 
+  /** Returns ALL contexts in kubeconfig */
+  listAllContexts(): string[] {
+    const kubeconfigPath =
+      process.env.KUBECONFIG ?? path.join(os.homedir(), ".kube", "config");
+    try {
+      const raw = fs.readFileSync(kubeconfigPath, "utf8");
+      const config = yaml.load(raw) as KubeConfig;
+      return config.contexts?.map((c) => c.name) ?? [];
+    } catch { return []; }
+  }
+
   /** Returns all EKS contexts found in kubeconfig */
   listEksContexts(): string[] {
     const kubeconfigPath =

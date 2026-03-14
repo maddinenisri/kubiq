@@ -1,4 +1,4 @@
-import type { PodSnapshot } from "../pods/podDiagnostics";
+import type { PodSnapshot } from "../kubectl/runner";
 
 // Known crash patterns for instant local pre-classification (no CLI involved)
 const CRASH_PATTERNS: Array<{

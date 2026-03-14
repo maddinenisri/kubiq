@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <!-- Hexagon outline -->
+  <polygon points="12,1.5 21.5,7 21.5,17 12,22.5 2.5,17 2.5,7" fill="#0d1520" stroke="#4af0c8" stroke-width="1.2"/>
+  <!-- K letterform — stylized -->
+  <path d="M8.5,7 L8.5,17" stroke="#4af0c8" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M8.5,12 L14,7" stroke="#4af0c8" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M10.5,12.8 L15.5,17" stroke="#4af0c8" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Pulse dot — diagnostic accent -->
+  <circle cx="16.5" cy="7.5" r="1.5" fill="#4af0c8" opacity="0.9"/>
+</svg>
