@@ -1,16 +1,21 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ExtensionStateProvider } from "./context/ExtensionStateContext";
+import { PodPanel } from "./components/panel/PodPanel";
+import { postMessage } from "./lib/vscode";
 import "./index.css";
 
 function PanelApp() {
+  // Read pod info from data attributes set by the extension host
+  const root = document.getElementById("root")!;
+  const podName = root.dataset.podName ?? "unknown";
+  const namespace = root.dataset.namespace ?? "default";
+  const context = root.dataset.context ?? "";
+
   return (
-    <div style={{ padding: 16, textAlign: "center" }}>
-      <div style={{ color: "var(--kubiq-accent)", fontSize: 32 }}>⬡</div>
-      <h2 style={{ marginTop: 8 }}>Pod Panel</h2>
-      <p style={{ color: "var(--kubiq-dim)", marginTop: 8, fontSize: 12 }}>
-        React 19 panel — ready for migration
-      </p>
-    </div>
+    <ExtensionStateProvider>
+      <PodPanel podName={podName} namespace={namespace} context={context} />
+    </ExtensionStateProvider>
   );
 }
 
@@ -19,3 +24,6 @@ createRoot(document.getElementById("root")!).render(
     <PanelApp />
   </StrictMode>,
 );
+
+// Signal ready to extension host
+postMessage({ type: "ready" });

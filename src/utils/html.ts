@@ -33,6 +33,7 @@ export function getWebviewHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
   entryPoint: "sidebar" | "panel" | "resource",
+  dataAttrs?: Record<string, string>,
 ): string {
   const nonce = getNonce();
   const assetsDir = path.join(extensionUri.fsPath, "out", "webview", "assets");
@@ -85,7 +86,13 @@ ${chunkTags}
   <title>Kubiq</title>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root"${
+    dataAttrs
+      ? Object.entries(dataAttrs)
+          .map(([k, v]) => ` data-${k}="${esc(v)}"`)
+          .join("")
+      : ""
+  }></div>
   <script type="module" nonce="${nonce}" src="${entryUri}"></script>
 </body>
 </html>`;

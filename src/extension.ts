@@ -154,8 +154,24 @@ async function runDiagnosis(
     sessionStore.clear(podKey);
     activeSessions.get(podKey)?.dispose();
     activeSessions.delete(podKey);
-    // Re-fetch snapshot and start fresh session
     runDiagnosis(extCtx, podName, namespace, clusterContext);
+  });
+
+  panel.onApplyYaml(async (yaml) => {
+    const confirm = await vscode.window.showWarningMessage(
+      `Apply YAML changes to pod ${podName}?`,
+      { modal: true },
+      "Apply",
+    );
+    if (confirm !== "Apply") return;
+    try {
+      const result = await runner.applyYaml(clusterContext, yaml);
+      vscode.window.showInformationMessage(`Kubiq: ${result.trim()}`);
+    } catch (e) {
+      vscode.window.showErrorMessage(
+        `Kubiq: apply failed — ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   });
 }
 
