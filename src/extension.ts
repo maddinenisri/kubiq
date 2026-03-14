@@ -96,40 +96,20 @@ async function runDiagnosis(
 
     panel.renderSnapshot(snapshot as Parameters<typeof panel.renderSnapshot>[0]);
 
-    // Restore chat history if session exists
-    const stored = sessionStore.get(podKey);
-    if (stored) {
-      panel.sendChatHistory(stored.messages);
-      const session = createSession(podKey, stored.sessionId);
-      wireSession(session, panel, podKey);
-
-      // Send context info
-      const aiEnabled = vscode.workspace.getConfiguration("kubiq.ai").get("enabled", true);
-      panel.sendContextInfo(
-        aiEnabled
-          ? crashAnalyzer.getPromptContext()
-          : { preset: "disabled", skills: [], sanitization: false, customInstructions: false },
-      );
-      return;
-    }
-
     // Check if AI is enabled
     const aiEnabled = vscode.workspace.getConfiguration("kubiq.ai").get("enabled", true);
-    if (!aiEnabled) {
-      panel.sendContextInfo({
-        preset: "disabled",
-        skills: [],
-        sanitization: false,
-        customInstructions: false,
-      });
-      return;
-    }
-
-    // Fresh start: send context info and begin AI session
-    panel.sendThinking();
-    const ctx = crashAnalyzer.getPromptContext();
+    const ctx = aiEnabled
+      ? crashAnalyzer.getPromptContext()
+      : { preset: "disabled", skills: [], sanitization: false, customInstructions: false };
     panel.sendContextInfo(ctx);
 
+    if (!aiEnabled) return;
+
+    // Clear any stale stored sessions and always start fresh
+    sessionStore.clear(podKey);
+
+    // Fresh start: begin AI diagnosis
+    panel.sendThinking();
     const session = createSession(podKey);
     wireSession(session, panel, podKey);
     session.send(

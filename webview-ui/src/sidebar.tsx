@@ -19,11 +19,5 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-// Signal ready to extension host — retry until acknowledged (handles race condition)
-function signalInit() {
-  postMessage({ type: "init" });
-}
-// Send immediately and retry after a delay in case the extension host isn't ready
-signalInit();
-setTimeout(signalInit, 500);
-setTimeout(signalInit, 1500);
+// Signal ready to extension host — single init, no retries
+postMessage({ type: "init" });

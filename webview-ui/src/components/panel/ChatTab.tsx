@@ -66,16 +66,24 @@ export function ChatTab() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+        {state.chatMessages.length === 0 && !state.streaming && (
+          <div className="flex flex-col items-center justify-center flex-1 gap-2 text-dim text-sm">
+            <div className="text-2xl text-accent/40">⬡</div>
+            <span>AI diagnosis will appear here</span>
+          </div>
+        )}
         {state.chatMessages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[82%] px-3.5 py-2.5 rounded-lg text-sm leading-relaxed whitespace-pre-wrap break-words
                 ${msg.role === "user"
-                  ? "bg-link/15 border border-link/25 text-blue-100 rounded-br-sm"
-                  : "bg-bg3 border border-border2 rounded-tl-sm"
+                  ? "bg-[#1a2a45] border border-[#2a3a60] text-[#d0d8f0] rounded-br-sm"
+                  : "bg-[#1a1e28] border border-[#2e3448] text-[#c8cfe0] rounded-tl-sm"
                 }`}
             >
-              {msg.role === "assistant" ? <Markdown content={msg.content} /> : msg.content}
+              <div style={{ color: msg.role === "user" ? "#d0d8f0" : "#c8cfe0" }}>
+                {msg.content || <em style={{ color: "#5a6380" }}>Empty response</em>}
+              </div>
             </div>
           </div>
         ))}

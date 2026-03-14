@@ -74,6 +74,8 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
     case "SET_NAMESPACE":
       return { ...state, currentNamespace: action.namespace, data: {} };
     case "SET_CONTEXT":
+      // Don't reset if same context
+      if (state.currentContext === action.context) return state;
       return { ...state, currentContext: action.context, data: {}, namespaces: [], connected: false };
     case "SET_LOADING":
       return { ...state, loading: action.loading };
@@ -85,15 +87,19 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
     case "EXT_MESSAGE": {
       const msg = action.message;
       switch (msg.type) {
-        case "bootstrap":
+        case "bootstrap": {
+          // Idempotent: don't reset if already bootstrapped with same context
+          if (state.profiles.length > 0 && state.currentContext === msg.currentContext) {
+            return state;
+          }
           return {
             ...state,
             profiles: msg.profiles,
             clustersByProfile: msg.clustersByProfile,
             currentContext: msg.currentContext,
-            // If we got a context, mark loading so the effect picks it up
             loading: !!msg.currentContext,
           };
+        }
         case "namespaces":
           return {
             ...state,
@@ -114,17 +120,24 @@ function reducer(state: ExtensionState, action: Action): ExtensionState {
           return { ...state, streaming: true, streamText: "" };
         case "text_delta":
           return { ...state, streamText: state.streamText + msg.text };
-        case "turn_complete":
+        case "turn_complete": {
+          // Ignore empty turn_complete (race condition with streaming deltas)
+          if (!msg.fullText && !state.streamText) {
+            return state;
+          }
+          const content = msg.fullText || state.streamText;
+          if (!content) return state;
           return {
             ...state,
             streaming: false,
             streamText: "",
             chatMessages: [
               ...state.chatMessages,
-              { role: "assistant", content: msg.fullText, timestamp: Date.now() },
+              { role: "assistant", content, timestamp: Date.now() },
             ],
             flaggedCommands: msg.flaggedCommands ?? [],
           };
+        }
         case "chat_history":
           return { ...state, chatMessages: msg.messages };
         case "context_info":

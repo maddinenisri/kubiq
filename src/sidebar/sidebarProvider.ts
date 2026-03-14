@@ -9,6 +9,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public static readonly viewId = "kubiq.dashboard";
   private view?: vscode.WebviewView;
   private diagnoseHandler?: DiagnoseHandler;
+  private initialized = false;
 
   constructor(private readonly extUri: vscode.Uri) {}
 
@@ -38,7 +39,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     view.webview.onDidReceiveMessage(async (msg: Record<string, unknown>) => {
       switch (msg.type as string) {
         case "init":
-          await this.handleInit(view);
+          if (!this.initialized) {
+            this.initialized = true;
+            await this.handleInit(view);
+          }
           break;
 
         case "getNamespaces": {
