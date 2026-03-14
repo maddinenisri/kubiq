@@ -4,7 +4,7 @@ import { postMessage } from "../../lib/vscode";
 import { useExtensionState } from "../../context/ExtensionStateContext";
 
 export function ChatTab() {
-  const { state } = useExtensionState();
+  const { state, dispatch } = useExtensionState();
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -18,9 +18,17 @@ export function ChatTab() {
   const handleSend = useCallback(() => {
     const text = input.trim();
     if (!text || state.streaming) return;
+    // Add user message to local state immediately for instant UI feedback
+    dispatch({
+      type: "EXT_MESSAGE",
+      message: {
+        type: "chat_history",
+        messages: [...state.chatMessages, { role: "user", content: text, timestamp: Date.now() }],
+      },
+    });
     postMessage({ type: "user_message", text });
     setInput("");
-  }, [input, state.streaming]);
+  }, [input, state.streaming, state.chatMessages, dispatch]);
 
   const handleNewChat = useCallback(() => {
     postMessage({ type: "new_chat" });
