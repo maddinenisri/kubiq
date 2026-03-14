@@ -1,17 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ResourcePanel } from "./components/resource/ResourcePanel";
 import "./index.css";
 
 function ResourceApp() {
-  return (
-    <div style={{ padding: 16, textAlign: "center" }}>
-      <div style={{ color: "var(--kubiq-accent)", fontSize: 32 }}>⬡</div>
-      <h2 style={{ marginTop: 8 }}>Resource Detail</h2>
-      <p style={{ color: "var(--kubiq-dim)", marginTop: 8, fontSize: 12 }}>
-        React 19 resource panel — ready for migration
-      </p>
-    </div>
-  );
+  const root = document.getElementById("root")!;
+  const kind = root.dataset.kind ?? "";
+  const name = root.dataset.name ?? "";
+  const namespace = root.dataset.namespace ?? "";
+  const context = root.dataset.context ?? "";
+
+  return <ResourcePanel kind={kind} name={name} namespace={namespace} context={context} />;
 }
 
 createRoot(document.getElementById("root")!).render(

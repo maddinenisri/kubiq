@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import type { PodSnapshot } from "../kubectl/runner";
-import type { StoredMessage } from "../claude/sessionStore";
+import type { PodSnapshot } from "../services/KubectlService";
+import type { StoredMessage } from "../services/SessionStoreService";
 import { getWebviewHtml } from "../utils/html";
 
 type UserMessageHandler = (text: string) => void;

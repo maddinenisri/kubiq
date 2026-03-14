@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SessionStore } from "./sessionStore";
+import { SessionStore } from "./SessionStoreService";
 
 function createMockMemento() {
   const store = new Map<string, unknown>();

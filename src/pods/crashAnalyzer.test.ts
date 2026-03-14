@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { CrashAnalyzer } from "./crashAnalyzer";
-import type { PodSnapshot } from "../kubectl/runner";
+import type { PodSnapshot } from "../services/KubectlService";
 
 const analyzer = new CrashAnalyzer();
 

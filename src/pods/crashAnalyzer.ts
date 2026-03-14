@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { PodSnapshot } from "../kubectl/runner";
+import type { PodSnapshot } from "../services/KubectlService";
 import { sanitize } from "../ai/sanitizer";
 import { loadSkills, getSkillNames } from "../ai/skillsLoader";
 

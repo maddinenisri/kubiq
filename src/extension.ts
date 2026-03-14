@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { SidebarProvider } from "./sidebar/sidebarProvider";
 import { PodPanel } from "./webview/podPanel";
-import { ClaudeSession } from "./claude/claudeSession";
-import { SessionStore } from "./claude/sessionStore";
-import { runner } from "./kubectl/runner";
+import { ClaudeSession } from "./services/ClaudeService";
+import { SessionStore } from "./services/SessionStoreService";
+import { runner } from "./services/KubectlService";
 import { crashAnalyzer } from "./pods/crashAnalyzer";
 import { validateResponse } from "./ai/responseValidator";
 import { invalidateSkillsCache } from "./ai/skillsLoader";
@@ -48,7 +48,7 @@ export async function activate(context: vscode.ExtensionContext) {
           (await vscode.window.showInputBox({ prompt: "Namespace", value: "default" })) ??
           "default";
         const contexts = (
-          await import("./clusters/contextManager")
+          await import("./services/ContextService")
         ).contextManager.listAllContexts();
         const c =
           contexts.length === 1

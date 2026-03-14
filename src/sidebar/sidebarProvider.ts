@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getWebviewHtml } from "../utils/html";
-import { runner } from "../kubectl/runner";
-import { contextManager } from "../clusters/contextManager";
+import { runner } from "../services/KubectlService";
+import { contextManager } from "../services/ContextService";
 
 type DiagnoseHandler = (pod: string, namespace: string, context: string) => void;
 
@@ -245,9 +245,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         "kubiqResource",
         `⬡ ${name}`,
         vscode.ViewColumn.One,
-        { enableScripts: true, retainContextWhenHidden: true },
+        {
+          enableScripts: true,
+          retainContextWhenHidden: true,
+          localResourceRoots: [vscode.Uri.joinPath(this.extUri, "out")],
+        },
       );
-      panel.webview.html = buildResourceHtml(kind, name, ns, ctx, describeOut, yamlOut);
+      panel.webview.html = getWebviewHtml(panel.webview, this.extUri, "resource", {
+        kind,
+        name,
+        namespace: ns,
+        context: ctx,
+      });
+      // Send resource data to the React panel
+      panel.webview.postMessage({ type: "resourceData", describe: describeOut, yaml: yamlOut });
 
       // Handle apply from the editable YAML tab
       panel.webview.onDidReceiveMessage(async (msg: Record<string, unknown>) => {
@@ -366,180 +377,4 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       return "";
     }
   }
-}
-
-// ── Themed resource detail panel HTML ──────────────────────────────────────────
-
-function esc(s: string): string {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function buildResourceHtml(
-  kind: string,
-  name: string,
-  ns: string,
-  ctx: string,
-  describe: string,
-  yaml: string,
-): string {
-  return /* html */ `<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<style>
-:root {
-  --bg:#0d0f14;--bg2:#13161d;--bg3:#1a1e28;--border:#252a38;--border2:#2e3448;
-  --text:#c8cfe0;--dim:#5a6380;--accent:#4af0c8;--accent2:#3a7bd5;
-  --font-mono:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
-  --font-ui:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--font-ui);
-     font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-.topbar{display:flex;align-items:center;gap:8px;padding:10px 16px;
-        background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
-.hex{color:var(--accent);font-size:16px;}
-.res-name{font-size:15px;font-weight:600;color:#e8ecf8;}
-.tag{padding:2px 8px;border-radius:3px;font-size:11px;font-family:var(--font-mono);}
-.kind-tag{background:#1a2235;border:1px solid #2a3a5a;color:var(--accent2);}
-.ns-tag{background:#1e2235;border:1px solid var(--border2);color:#7a85b0;}
-.ctx-tag{background:#1e2235;border:1px solid var(--border2);color:var(--dim);}
-.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
-.tab{background:transparent;border:none;cursor:pointer;color:var(--dim);
-     padding:9px 18px;font-family:var(--font-ui);font-size:12px;font-weight:500;
-     letter-spacing:.04em;border-bottom:2px solid transparent;
-     transition:color .15s,border-color .15s;}
-.tab:hover{color:var(--text);}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-.panel{display:none;flex:1;overflow:auto;padding:14px;position:relative;flex-direction:column;}
-.panel.active{display:flex;}
-pre{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
-    padding:14px;font-family:var(--font-mono);font-size:11.5px;line-height:1.7;
-    white-space:pre-wrap;word-break:break-word;color:var(--text);}
-.yaml-toolbar{display:flex;gap:6px;margin-bottom:8px;justify-content:flex-end;}
-.yaml-action-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--dim);
-    border-radius:4px;padding:5px 12px;cursor:pointer;font-size:11px;font-family:var(--font-ui);
-    transition:color .15s,border-color .15s;}
-.yaml-action-btn:hover{color:var(--accent);border-color:var(--accent);}
-.apply-btn{color:var(--accent);border-color:var(--accent);}
-.apply-btn:hover{background:#0d2e22;}
-.cancel-btn:hover{color:var(--err);border-color:var(--err);}
-.yaml-view{white-space:pre-wrap;}
-.yaml-editor{width:100%;flex:1;background:var(--bg2);border:1px solid var(--accent);
-    border-radius:4px;padding:14px;font-family:var(--font-mono);font-size:11.5px;
-    line-height:1.7;color:var(--text);resize:none;outline:none;
-    white-space:pre;overflow:auto;tab-size:2;}
-pre{flex:1;}
-.copy-yaml-btn{background:var(--bg3);
-    border:1px solid var(--border2);color:var(--dim);border-radius:4px;
-    padding:5px 10px;cursor:pointer;font-size:11px;font-family:var(--font-ui);
-    display:flex;align-items:center;gap:4px;transition:color .15s,border-color .15s;z-index:5;}
-.copy-yaml-btn:hover{color:var(--accent);border-color:var(--accent);}
-.copy-yaml-btn.copied{color:#4af0c8;border-color:#4af0c8;}
-</style>
-</head><body>
-<div class="topbar">
-  <span class="hex">⬡</span>
-  <span class="res-name">${esc(name)}</span>
-  <span class="tag kind-tag">${esc(kind)}</span>
-  <span class="tag ns-tag">${esc(ns)}</span>
-  <span class="tag ctx-tag">${esc(ctx)}</span>
-</div>
-<div class="tabs">
-  <button class="tab active" data-tab="describe">Describe</button>
-  ${yaml ? '<button class="tab" data-tab="yaml">YAML</button>' : ""}
-</div>
-<div class="panel active" id="tab-describe">
-  <button class="copy-yaml-btn" id="copyDescribe" title="Copy to clipboard">📋 Copy</button>
-  <pre id="describeContent">${esc(describe)}</pre>
-</div>
-${
-  yaml
-    ? `<div class="panel" id="tab-yaml">
-  <div class="yaml-toolbar" id="yamlToolbar">
-    <button class="copy-yaml-btn" id="copyYaml" title="Copy YAML">📋 Copy</button>
-    <button class="yaml-action-btn" id="editYamlBtn" title="Edit YAML">✎ Edit</button>
-    <button class="yaml-action-btn apply-btn" id="applyYamlBtn" style="display:none" title="Apply changes">Apply</button>
-    <button class="yaml-action-btn cancel-btn" id="cancelYamlBtn" style="display:none" title="Cancel editing">Cancel</button>
-  </div>
-  <pre id="yamlView" class="yaml-view">${esc(yaml)}</pre>
-  <textarea id="yamlEditor" class="yaml-editor" style="display:none" spellcheck="false">${esc(yaml)}</textarea>
-</div>`
-    : ""
-}
-<script>
-var vscode = acquireVsCodeApi();
-document.querySelectorAll('.tab').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active');});
-    document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
-    btn.classList.add('active');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
-  });
-});
-
-// Copy buttons
-function copyText(btnId, sourceId) {
-  var btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.addEventListener('click', function() {
-    var el = document.getElementById(sourceId);
-    var text = el ? (el.value || el.textContent || '') : '';
-    navigator.clipboard.writeText(text).then(function() {
-      btn.textContent = '✓ Copied';
-      btn.classList.add('copied');
-      setTimeout(function() { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 1500);
-    });
-  });
-}
-copyText('copyDescribe', 'describeContent');
-copyText('copyYaml', 'yamlView');
-
-// YAML Edit / Apply / Cancel
-var yamlView = document.getElementById('yamlView');
-var yamlEditor = document.getElementById('yamlEditor');
-var editBtn = document.getElementById('editYamlBtn');
-var applyBtn = document.getElementById('applyYamlBtn');
-var cancelBtn = document.getElementById('cancelYamlBtn');
-
-if (editBtn) {
-  editBtn.addEventListener('click', function() {
-    yamlEditor.value = yamlView.textContent || '';
-    yamlView.style.display = 'none';
-    yamlEditor.style.display = 'block';
-    editBtn.style.display = 'none';
-    applyBtn.style.display = '';
-    cancelBtn.style.display = '';
-    yamlEditor.focus();
-  });
-}
-if (cancelBtn) {
-  cancelBtn.addEventListener('click', function() {
-    yamlEditor.style.display = 'none';
-    yamlView.style.display = 'block';
-    editBtn.style.display = '';
-    applyBtn.style.display = 'none';
-    cancelBtn.style.display = 'none';
-  });
-}
-if (applyBtn) {
-  applyBtn.addEventListener('click', function() {
-    vscode.postMessage({ type: 'applyYaml', yaml: yamlEditor.value });
-  });
-}
-
-// Handle apply result
-window.addEventListener('message', function(e) {
-  if (e.data.type === 'applySuccess') {
-    yamlView.textContent = yamlEditor.value;
-    cancelBtn.click();
-  }
-});
-</script>
-</body></html>`;
 }

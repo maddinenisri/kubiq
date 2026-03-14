@@ -1,7 +1,7 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
 import * as vscode from "vscode";
-import { contextManager } from "../clusters/contextManager";
+import { contextManager } from "./ContextService";
 
 const exec = promisify(execFile);
 const MAX_BUF = 20 * 1024 * 1024;
