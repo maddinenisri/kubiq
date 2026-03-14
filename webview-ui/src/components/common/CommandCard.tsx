@@ -21,43 +21,36 @@ export function CommandCard({ command, explanation, risk, issues }: CommandCardP
   const [error, setError] = useState<string | null>(null);
   const r = riskConfig[risk];
 
-  // Listen for command output
+  const handleCancel = useCallback(() => {
+    postMessage({ type: "cancelCommand", command } as never);
+    setRunning(false);
+    setError("Command cancelled by user");
+  }, [command]);
+
   const handleRun = useCallback(() => {
     setRunning(true);
     setOutput(null);
     setError(null);
     postMessage({ type: "runCommand", command } as never);
 
-    // Listen for response
     const handler = (event: MessageEvent) => {
       if (event.data.type === "commandOutput" && event.data.command === command) {
         setRunning(false);
         if (event.data.error) {
           setError(event.data.error);
-          // Auto-send error back to AI for analysis
-          postMessage({
-            type: "user_message",
-            text: `Command failed: \`${command}\`\n\nError:\n\`\`\`\n${event.data.error}\n\`\`\`\n\nPlease analyze this error and suggest what to do next.`,
-          } as never);
         } else {
           setOutput(event.data.output);
-          // Auto-send output back to AI for analysis
-          const truncated = event.data.output.length > 3000
-            ? event.data.output.slice(0, 3000) + "\n...[truncated]"
-            : event.data.output;
-          postMessage({
-            type: "user_message",
-            text: `Command output for: \`${command}\`\n\n\`\`\`\n${truncated}\n\`\`\`\n\nAnalyze this output and tell me what you see. If there's an issue, suggest the next diagnostic step or a fix.`,
-          } as never);
         }
         window.removeEventListener("message", handler);
       }
     };
     window.addEventListener("message", handler);
-    // Timeout
     setTimeout(() => {
-      setRunning(false);
-      window.removeEventListener("message", handler);
+      if (running) {
+        setRunning(false);
+        setError("Command timed out (30s)");
+        window.removeEventListener("message", handler);
+      }
     }, 30000);
   }, [command]);
 
@@ -130,10 +123,9 @@ export function CommandCard({ command, explanation, risk, issues }: CommandCardP
           borderTop: "1px solid rgba(255,255,255,0.05)",
         }}
       >
-        {risk !== "dangerous" && (
+        {risk !== "dangerous" && !running && (
           <button
             onClick={handleRun}
-            disabled={running}
             style={{
               display: "flex",
               alignItems: "center",
@@ -144,11 +136,29 @@ export function CommandCard({ command, explanation, risk, issues }: CommandCardP
               border: `1px solid ${r.color}`,
               color: r.color,
               background: "transparent",
-              cursor: running ? "wait" : "pointer",
-              opacity: running ? 0.5 : 1,
+              cursor: "pointer",
             }}
           >
-            {running ? "⏳ Running…" : "▶ Run"}
+            ▶ Run
+          </button>
+        )}
+        {running && (
+          <button
+            onClick={handleCancel}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "3px 10px",
+              borderRadius: 3,
+              fontSize: 10,
+              border: "1px solid #f05a5a",
+              color: "#f05a5a",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            ■ Cancel
           </button>
         )}
         <CopyButton text={command} label="Copy" />
@@ -195,7 +205,29 @@ export function CommandCard({ command, explanation, risk, issues }: CommandCardP
             overflow: "auto",
           }}
         >
-          <div style={{ color: "#4af0c8", fontSize: 10, marginBottom: 4 }}>✓ Output:</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+            <span style={{ color: "#4af0c8", fontSize: 10 }}>✓ Output:</span>
+            <button
+              onClick={() => {
+                const truncated = output.length > 3000 ? output.slice(0, 3000) + "\n...[truncated]" : output;
+                postMessage({
+                  type: "user_message",
+                  text: `Command output for: \`${command}\`\n\n\`\`\`\n${truncated}\n\`\`\`\n\nAnalyze this output and suggest next steps.`,
+                } as never);
+              }}
+              style={{
+                padding: "2px 8px",
+                borderRadius: 3,
+                fontSize: 9,
+                border: "1px solid #3a7bd5",
+                color: "#3a7bd5",
+                background: "transparent",
+                cursor: "pointer",
+              }}
+            >
+              📤 Send to AI
+            </button>
+          </div>
           {output}
         </div>
       )}

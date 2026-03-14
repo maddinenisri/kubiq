@@ -75,21 +75,43 @@ export class PodPanel {
         instance.post({ type: "validationResult", result });
       }
       if (msg.type === "runCommand" && msg.command) {
-        try {
-          const { runner } = await import("../services/KubectlService");
-          const args = (msg.command as string).replace(/^kubectl\s+/, "").split(/\s+/);
-          const { execFile } = require("child_process");
-          const { promisify } = require("util");
-          const exec = promisify(execFile);
-          const { stdout } = await exec("kubectl", args, { maxBuffer: 10 * 1024 * 1024 });
-          instance.post({ type: "commandOutput", command: msg.command, output: stdout });
-        } catch (e: unknown) {
-          const err = e as { stderr?: string; message?: string };
-          instance.post({
-            type: "commandOutput",
-            command: msg.command,
-            error: err.stderr ?? err.message ?? String(e),
-          });
+        const { execFile } = require("child_process");
+        const cmd = msg.command as string;
+        const args = cmd.replace(/^kubectl\s+/, "").split(/\s+/);
+        const child = execFile(
+          "kubectl",
+          args,
+          { maxBuffer: 10 * 1024 * 1024 },
+          (err: unknown, stdout: string) => {
+            instance.runningProcesses.delete(cmd);
+            if (err) {
+              const e = err as { killed?: boolean; stderr?: string; message?: string };
+              if (e.killed) {
+                instance.post({
+                  type: "commandOutput",
+                  command: cmd,
+                  error: "Command cancelled",
+                  cancelled: true,
+                });
+              } else {
+                instance.post({
+                  type: "commandOutput",
+                  command: cmd,
+                  error: e.stderr ?? e.message ?? String(err),
+                });
+              }
+            } else {
+              instance.post({ type: "commandOutput", command: cmd, output: stdout });
+            }
+          },
+        );
+        instance.runningProcesses.set(cmd, child);
+      }
+      if (msg.type === "cancelCommand" && msg.command) {
+        const child = instance.runningProcesses.get(msg.command as string);
+        if (child) {
+          child.kill();
+          instance.runningProcesses.delete(msg.command as string);
         }
       }
     });
@@ -98,6 +120,7 @@ export class PodPanel {
   }
 
   private applyYamlHandler?: (yaml: string) => void;
+  runningProcesses = new Map<string, { kill: () => void }>();
 
   private constructor(panel: vscode.WebviewPanel) {
     this.panel = panel;
