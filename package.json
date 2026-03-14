@@ -2,7 +2,7 @@
   "name": "kubiq",
   "displayName": "Kubiq",
   "description": "Standalone Kubernetes intelligence dashboard — pod diagnostics, crash analysis, multi-cluster management with AI",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "kubiq",
   "author": {
     "name": "Kubiq"
