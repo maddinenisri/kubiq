@@ -93,8 +93,10 @@ export function ChatTab() {
         {/* Thinking */}
         {state.streaming && !state.streamText && (
           <div className="flex justify-start">
-            <div className="px-3.5 py-2.5 rounded-lg bg-bg3 border border-border2 rounded-tl-sm">
-              <span className="text-accent text-lg tracking-widest animate-bounce inline-block">...</span>
+            <div className="px-3.5 py-2.5 rounded-lg bg-bg3 border border-border2 rounded-tl-sm flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "0ms" }} />
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "150ms" }} />
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "300ms" }} />
             </div>
           </div>
         )}
