@@ -464,6 +464,7 @@ tbody tr:hover .row-actions{opacity:1;}
           '<td><div class="row-actions">' +
             '<button class="action-btn diagnose" data-action="diagnose" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '">⬡ AI</button>' +
             '<button class="action-btn" data-action="logs" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '">Logs</button>' +
+            '<button class="action-btn" data-action="edit" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" data-res="pods" title="Edit YAML">✎</button>' +
             '<button class="action-btn" data-action="restart" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" title="Delete pod (deployment will recreate)">↺</button>' +
             '<button class="action-btn" data-action="portforward" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" title="Port-forward">⇄</button>' +
           '</div></td>' +
@@ -476,7 +477,7 @@ tbody tr:hover .row-actions{opacity:1;}
       th('Name', 'name') + th('Namespace', 'namespace') +
       th('Ready', 'ready', false) + th('Up-to-date', 'upToDate') +
       th('Available', 'available') + th('Age', 'age') +
-      '</tr></thead><tbody>' +
+      '<th></th></tr></thead><tbody>' +
       rows.map(r => {
         const parts = r.ready.split('/');
         const ok = parts[0] === parts[1];
@@ -487,6 +488,9 @@ tbody tr:hover .row-actions{opacity:1;}
           '<td class="mono dim-text">' + r.upToDate + '</td>' +
           '<td class="mono dim-text">' + r.available + '</td>' +
           '<td class="dim-text">' + esc(r.age) + '</td>' +
+          '<td><div class="row-actions">' +
+            '<button class="action-btn" data-action="edit" data-name="' + esc(r.name) + '" data-ns="' + esc(r.namespace) + '" data-res="deployments" title="Edit YAML">✎</button>' +
+          '</div></td>' +
           '</tr>';
       }).join('') + '</tbody></table>';
   }
@@ -584,6 +588,9 @@ tbody tr:hover .row-actions{opacity:1;}
             vscode.postMessage({ type:'diagnose', pod:name, namespace:ns, context:state.currentCtx });
           } else if (action === 'logs') {
             vscode.postMessage({ type:'diagnose', pod:name, namespace:ns, context:state.currentCtx, tab:'logs' });
+          } else if (action === 'edit') {
+            var editRes = btn.dataset.res || state.currentRes;
+            vscode.postMessage({ type:'editYaml', resource:editRes, name:name, namespace:ns, context:state.currentCtx });
           } else if (action === 'restart') {
             vscode.postMessage({ type:'restartPod', pod:name, namespace:ns, context:state.currentCtx });
           } else if (action === 'portforward') {

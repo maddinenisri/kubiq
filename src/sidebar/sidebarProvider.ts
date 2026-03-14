@@ -60,6 +60,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         }
 
+        case "editYaml": {
+          const resType = msg.resource as string;
+          const name = msg.name as string;
+          const ns = msg.namespace as string;
+          const ctx = msg.context as string;
+          await this.handleEditYaml(view, resType, name, ns, ctx);
+          break;
+        }
+
         case "describeResource": {
           const resType = msg.resource as string;
           const name = msg.name as string;
@@ -195,6 +204,61 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       view.webview.postMessage({ type: "data", resource, rows });
     } catch (e) {
       this.sendError(view, `Failed to fetch ${resource}: ${(e as Error).message}`);
+    }
+  }
+
+  private async handleEditYaml(
+    view: vscode.WebviewView,
+    resType: string,
+    name: string,
+    ns: string,
+    ctx: string,
+  ) {
+    const kindMap: Record<string, string> = {
+      pods: "pod",
+      deployments: "deployment",
+      services: "service",
+      configmaps: "configmap",
+      nodes: "node",
+    };
+    const kind = kindMap[resType] ?? resType;
+
+    try {
+      const yaml = await runner.getYaml(ctx, kind, name, ns);
+      const doc = await vscode.workspace.openTextDocument({
+        content: yaml,
+        language: "yaml",
+      });
+      const editor = await vscode.window.showTextDocument(doc);
+
+      // Watch for save — apply changes
+      const disposable = vscode.workspace.onDidSaveTextDocument(async (saved) => {
+        if (saved !== doc) return;
+
+        const confirm = await vscode.window.showWarningMessage(
+          `Apply changes to ${kind}/${name}?`,
+          { modal: true },
+          "Apply",
+        );
+        if (confirm !== "Apply") return;
+
+        try {
+          const result = await runner.applyYaml(ctx, saved.getText());
+          vscode.window.showInformationMessage(`Kubiq: ${result.trim()}`);
+        } catch (e) {
+          vscode.window.showErrorMessage(`Kubiq: apply failed — ${(e as Error).message}`);
+        }
+      });
+
+      // Clean up listener when editor is closed
+      const closeDisposable = vscode.window.onDidChangeVisibleTextEditors((editors) => {
+        if (!editors.some((e) => e.document === doc)) {
+          disposable.dispose();
+          closeDisposable.dispose();
+        }
+      });
+    } catch (e) {
+      this.sendError(view, `Failed to get YAML: ${(e as Error).message}`);
     }
   }
 

@@ -329,6 +329,26 @@ export class KubectlRunner {
       .reverse(); // newest first
   }
 
+  // ── Get/Apply YAML ────────────────────────────────────────────────────
+
+  async getYaml(context: string, kind: string, name: string, namespace: string): Promise<string> {
+    const args = ["get", kind, name, "-o", "yaml", `--context=${context}`];
+    if (kind !== "node") args.push(`--namespace=${namespace}`);
+    return this.run(args, context);
+  }
+
+  async applyYaml(context: string, yaml: string): Promise<string> {
+    const { execFile } = require("child_process");
+    const { promisify } = require("util");
+    const execAsync = promisify(execFile);
+    const { stdout } = await execAsync("kubectl", ["apply", "-f", "-", `--context=${context}`], {
+      env: this.env(context),
+      maxBuffer: MAX_BUF,
+      input: yaml,
+    });
+    return stdout;
+  }
+
   // ── Describe any resource ──────────────────────────────────────────────
 
   async describe(context: string, kind: string, name: string, namespace: string): Promise<string> {
